@@ -1,7 +1,7 @@
 Analysis for SN Paper 1
 ================
 Saurabh Khanna
-2020-02-27
+2020-03-24
 
   - [Descriptive Analyses](#descriptive-analyses)
       - [Individual Level Segregation
@@ -23,9 +23,9 @@ library(haven)
 library(stargazer)
 
 # Parameters
-baseline_network_file <- here::here("baseline_network.dta")
-endline_network_file <- here::here("endline_network.dta")
-stu_admin_all_file <- here::here("stu_admin_all_latest.dta")
+baseline_network_file <- here::here("data/baseline_network.dta")
+endline_network_file <- here::here("data/endline_network.dta")
+stu_admin_all_file <- here::here("data/stu_admin_all_latest.dta")
 
 #===============================================================================
 ```
@@ -203,11 +203,11 @@ b_network %>%
 
 b_network %>% 
   as_tibble() %>%
-  left_join(read_csv(here::here("b_homophilies.csv")), by = "classid") %>%
+  left_join(read_csv(here::here("data/b_homophilies.csv")), by = "classid") %>%
   bind_rows(
     e_network %>% 
       as_tibble() %>% 
-      left_join(read_csv(here::here("e_homophilies.csv")), by = "classid"), 
+      left_join(read_csv(here::here("data/e_homophilies.csv")), by = "classid"), 
     .id = "survey"
   ) %>% 
   na_if("") %>% 
@@ -248,11 +248,11 @@ b_network %>%
 ``` r
 b_network %>% 
   as_tibble() %>%
-  left_join(read_csv(here::here("b_homophilies.csv")), by = "classid") %>%
+  left_join(read_csv(here::here("data/b_homophilies.csv")), by = "classid") %>%
   bind_rows(
     e_network %>% 
       as_tibble() %>% 
-      left_join(read_csv(here::here("e_homophilies.csv")), by = "classid"), 
+      left_join(read_csv(here::here("data/e_homophilies.csv")), by = "classid"), 
     .id = "survey"
   ) %>% 
   na_if("") %>% 
@@ -454,14 +454,24 @@ stu_admin_all <-
 Relationship between transitivity/reciprocity and integration scores:
 
 ``` r
-stu_admin_all %>% 
-  ggplot(aes(e_reciprocity, e_seg_studymate)) +
-  geom_smooth()
+stu_admin_all %>%
+  filter(elite == 0) %>% 
+  ggplot() +
+  geom_smooth(aes(b_reciprocity, b_seg_studymate), method = "lm", color = "red") +
+  geom_smooth(aes(e_reciprocity, e_seg_studymate), method = "lm", color = "blue") +
+  labs(
+    x = "Reciprocity",
+    y = "Segregation"
+  )
 ```
 
-    ## `geom_smooth()` using method = 'gam' and formula 'y ~ s(x, bs = "cs")'
+    ## `geom_smooth()` using formula 'y ~ x'
 
-    ## Warning: Removed 3087 rows containing non-finite values (stat_smooth).
+    ## Warning: Removed 3534 rows containing non-finite values (stat_smooth).
+
+    ## `geom_smooth()` using formula 'y ~ x'
+
+    ## Warning: Removed 2646 rows containing non-finite values (stat_smooth).
 
 ![](analysis_25feb2020_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
@@ -548,7 +558,7 @@ stu_admin_all %>%
     ## F-statistic: 12.37 on 1 and 7149 DF,  p-value: 0.0004391
 
 ``` r
-read_csv(here::here("trends.csv")) %>% 
+read_csv(here::here("data/trends.csv")) %>% 
   ggplot(aes(year, segregation, group = reservation, color = reservation)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_point(size = 2) +
