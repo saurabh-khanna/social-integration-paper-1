@@ -1,4 +1,4 @@
-Analysis for SN Paper 1
+Analysis for SN Paper 1 - Inference
 ================
 Saurabh Khanna
 2020-03-24
@@ -8,9 +8,12 @@ Saurabh Khanna
 library(tidyverse)
 library(haven)
 library(stargazer)
+library(plm)
+library(sandwich)
+library(lmtest)
 
 # Parameters
-data_file <- here::here("data/stu_admin_all.Rds")
+data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
 trends_file <- here::here("data/trends.csv")
 ```
 
@@ -21,6 +24,66 @@ df <-
   data_file %>%
   read_rds()
 ```
+
+Student fixed effects:
+
+``` r
+df %>% 
+  pivot_longer(
+    cols = contains("_seg_studymate"),
+    names_to = "survey",
+    values_to = "seg_studymate",
+    values_drop_na = FALSE
+  ) %>%
+  transmute(
+    stdid, 
+    endline = 
+      recode(
+        survey, 
+        "b_seg_studymate" = "0",
+        "e_seg_studymate" = "1"
+      ) %>% 
+      as.integer(), 
+    seg_studymate
+  ) %>% 
+  left_join(
+    df %>% 
+      pivot_longer(
+        cols = contains("transitivity"),
+        names_to = "endline",
+        values_to = "transitivity",
+        values_drop_na = FALSE
+      ) %>%
+      mutate(
+        stdid, 
+        endline = 
+          recode(
+            endline, 
+            "b_transitivity" = "0",
+            "e_transitivity" = "1"
+          ) %>% 
+          as.integer(), 
+        transitivity
+      ),
+    by = c("stdid", "endline")
+  ) %>% 
+  filter(stu_merge == 3) %>%
+  plm(
+    seg_studymate ~ transitivity,
+    data = .,
+    index = c("stdid", "endline"),
+    model = "within"
+  ) %>% 
+  coeftest(vcov. = vcovHC, type = "HC1")
+```
+
+    ## 
+    ## t test of coefficients:
+    ## 
+    ##              Estimate Std. Error t value Pr(>|t|)
+    ## transitivity 0.035145   0.039459  0.8907   0.3731
+
+OLD ANALYSES:
 
 Relationship between transitivity/reciprocity and integration scores:
 
@@ -44,7 +107,7 @@ df %>%
 
     ## Warning: Removed 2646 rows containing non-finite values (stat_smooth).
 
-![](analysis_inference_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](analysis_inference_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
 Segregation gain across years:
 
@@ -150,4 +213,4 @@ trends_file %>%
     ##   segregation = col_double()
     ## )
 
-![](analysis_inference_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](analysis_inference_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->

@@ -17,6 +17,8 @@ library(tidyverse)
 library(haven)
 library(stargazer)
 library(plm)
+library(sandwich)
+library(lmtest)
 
 # Parameters
 data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
@@ -33,9 +35,56 @@ df <-
 ```
 
 
+Student fixed effects:
+
 ```{r}
 df %>% 
-  filter(stu_merge == 3)
+  pivot_longer(
+    cols = contains("_seg_studymate"),
+    names_to = "survey",
+    values_to = "seg_studymate",
+    values_drop_na = FALSE
+  ) %>%
+  transmute(
+    stdid, 
+    endline = 
+      recode(
+        survey, 
+        "b_seg_studymate" = "0",
+        "e_seg_studymate" = "1"
+      ) %>% 
+      as.integer(), 
+    seg_studymate
+  ) %>% 
+  left_join(
+    df %>% 
+      pivot_longer(
+        cols = contains("transitivity"),
+        names_to = "endline",
+        values_to = "transitivity",
+        values_drop_na = FALSE
+      ) %>%
+      mutate(
+        stdid, 
+        endline = 
+          recode(
+            endline, 
+            "b_transitivity" = "0",
+            "e_transitivity" = "1"
+          ) %>% 
+          as.integer(), 
+        transitivity
+      ),
+    by = c("stdid", "endline")
+  ) %>% 
+  filter(stu_merge == 3) %>%
+  plm(
+    seg_studymate ~ transitivity,
+    data = .,
+    index = c("stdid", "endline"),
+    model = "within"
+  ) %>% 
+  coeftest(vcov. = vcovHC, type = "HC1")
 ```
 
 
