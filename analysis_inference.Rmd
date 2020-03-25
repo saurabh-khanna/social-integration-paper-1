@@ -1,5 +1,5 @@
 ---
-title: "Analysis for SN Paper 1"
+title: "Analysis for SN Paper 1 - Inference"
 author: "Saurabh Khanna"
 date: "`r Sys.Date()`"
 output: 
@@ -16,9 +16,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(haven)
 library(stargazer)
+library(plm)
 
 # Parameters
-data_file <- here::here("data/stu_admin_all.Rds")
+data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
 trends_file <- here::here("data/trends.csv")
 ```
 
@@ -32,6 +33,24 @@ df <-
 ```
 
 
+```{r}
+df %>% 
+  filter(stu_merge == 3)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+OLD ANALYSES:
 
 Relationship between transitivity/reciprocity and integration scores:
 
