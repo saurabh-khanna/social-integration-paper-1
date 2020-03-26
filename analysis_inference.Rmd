@@ -59,9 +59,9 @@ df %>%
   left_join(
     df %>% 
       pivot_longer(
-        cols = contains("transitivity"),
+        cols = ends_with("ql_score"),
         names_to = "endline",
-        values_to = "transitivity",
+        values_to = "ql_score",
         values_drop_na = FALSE
       ) %>%
       mutate(
@@ -69,17 +69,17 @@ df %>%
         endline = 
           recode(
             endline, 
-            "b_transitivity" = "0",
-            "e_transitivity" = "1"
+            "b_ql_score" = "0",
+            "e_ql_score" = "1"
           ) %>% 
           as.integer(), 
-        transitivity
+        ql_score
       ),
     by = c("stdid", "endline")
   ) %>% 
   filter(stu_merge == 3) %>%
   plm(
-    seg_studymate ~ transitivity,
+    ql_score ~ seg_studymate,
     data = .,
     index = c("stdid", "endline"),
     model = "within"

@@ -1,7 +1,7 @@
 Analysis for SN Paper 1 - Inference
 ================
 Saurabh Khanna
-2020-03-24
+2020-03-25
 
 ``` r
 # Libraries
@@ -49,9 +49,9 @@ df %>%
   left_join(
     df %>% 
       pivot_longer(
-        cols = contains("transitivity"),
+        cols = ends_with("ql_score"),
         names_to = "endline",
-        values_to = "transitivity",
+        values_to = "ql_score",
         values_drop_na = FALSE
       ) %>%
       mutate(
@@ -59,17 +59,17 @@ df %>%
         endline = 
           recode(
             endline, 
-            "b_transitivity" = "0",
-            "e_transitivity" = "1"
+            "b_ql_score" = "0",
+            "e_ql_score" = "1"
           ) %>% 
           as.integer(), 
-        transitivity
+        ql_score
       ),
     by = c("stdid", "endline")
   ) %>% 
   filter(stu_merge == 3) %>%
   plm(
-    seg_studymate ~ transitivity,
+    ql_score ~ seg_studymate,
     data = .,
     index = c("stdid", "endline"),
     model = "within"
@@ -80,8 +80,8 @@ df %>%
     ## 
     ## t test of coefficients:
     ## 
-    ##              Estimate Std. Error t value Pr(>|t|)
-    ## transitivity 0.035145   0.039459  0.8907   0.3731
+    ##               Estimate Std. Error t value Pr(>|t|)
+    ## seg_studymate -0.18383    0.34560 -0.5319   0.5948
 
 OLD ANALYSES:
 
