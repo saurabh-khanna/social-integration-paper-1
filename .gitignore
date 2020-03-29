@@ -1,5 +1,8 @@
 data/
 old/
+*.dta
+*.csv
+*.Rds
 report/
 .Rproj.user
 .Rproj.user/
