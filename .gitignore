@@ -3,6 +3,8 @@ old/
 *.dta
 *.csv
 *.Rds
+*.html
+*.tex
 report/
 .Rproj.user
 .Rproj.user/

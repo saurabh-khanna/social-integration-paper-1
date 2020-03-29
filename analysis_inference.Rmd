@@ -31,143 +31,100 @@ Read main data file:
 ```{r}
 df <-
   data_file %>%
-  read_rds()
-```
-
-
-Student fixed effects:
-
-```{r}
-df %>% 
-  pivot_longer(
-    cols = contains("_seg_studymate"),
-    names_to = "survey",
-    values_to = "seg_studymate",
-    values_drop_na = FALSE
-  ) %>%
-  transmute(
-    stdid, 
-    endline = 
-      recode(
-        survey, 
-        "b_seg_studymate" = "0",
-        "e_seg_studymate" = "1"
-      ) %>% 
-      as.integer(), 
-    seg_studymate
-  ) %>% 
-  left_join(
-    df %>% 
-      pivot_longer(
-        cols = ends_with("ql_score"),
-        names_to = "endline",
-        values_to = "ql_score",
-        values_drop_na = FALSE
-      ) %>%
-      mutate(
-        stdid, 
-        endline = 
-          recode(
-            endline, 
-            "b_ql_score" = "0",
-            "e_ql_score" = "1"
-          ) %>% 
-          as.integer(), 
-        ql_score
-      ),
-    by = c("stdid", "endline")
-  ) %>% 
-  filter(stu_merge == 3) %>%
-  plm(
-    ql_score ~ seg_studymate,
-    data = .,
-    index = c("stdid", "endline"),
-    model = "within"
-  ) %>% 
-  coeftest(vcov. = vcovHC, type = "HC1")
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-OLD ANALYSES:
-
-Relationship between transitivity/reciprocity and integration scores:
-
-```{r}
-df %>% 
-  filter(elite == 0) %>% 
-  ggplot() +
-  geom_smooth(aes(b_reciprocity, b_seg_studymate), color = "red") +
-  geom_smooth(aes(e_reciprocity, e_seg_studymate), color = "blue") +
-  labs(
-    x = "Reciprocity",
-    y = "Segregation"
+  read_rds() %>% 
+  filter(stu_merge == 3) %>% 
+  mutate_at(vars(contains("ea_seats_reser")), replace_na, replace = 0) %>% 
+  mutate(
+    female = gender - 1,
+    age = 2017 - lubridate::year(b_birthdate),
+    stu_reserved = ea_seats_reserved_students_obc + ea_seats_reserved_students_sc + ea_seats_reserved_students_st,
+    fac_reserved = ea_seats_reserved_faculty_obc + ea_seats_reserved_faculty_sc + ea_seats_reserved_faculty_st
   )
 ```
 
-Segregation gain across years:
 
-```{r}
-df %>% 
-  select(classid, stdid, grade, elite, reservation, contains("_seg_stud")) %>% 
-  filter(grade == 2) %>% 
-  pivot_longer(
-    cols = contains("_seg_"),
-    names_to = "endline",
-    values_to = "segregation"
-  ) %>% 
-  mutate(
-    endline = recode(endline, "b_seg_studymate" = "0", "e_seg_studymate" = "1") %>% parse_integer(),
-    reservation = recode(reservation, "Non-reservation" = "0", "Reservation" = "1") %>% parse_integer(),
-    segregation = scale(segregation)
-  ) %>%
-  arrange(classid, stdid) %>% 
-  filter(reservation == 0, elite == 0) %>% 
-  lm(segregation ~ factor(endline), data = .) %>% 
-  summary()
+Models:
 
-df %>% 
-  select(classid, stdid, grade, elite, reservation, contains("_seg_stud")) %>% 
-  filter(grade == 4) %>% 
-  pivot_longer(
-    cols = contains("_seg_"),
-    names_to = "endline",
-    values_to = "segregation"
-  ) %>% 
-  mutate(
-    endline = recode(endline, "b_seg_studymate" = "0", "e_seg_studymate" = "1") %>% parse_integer(),
-    reservation = recode(reservation, "Non-reservation" = "0", "Reservation" = "1") %>% parse_integer(),
-    segregation = scale(segregation)
-  ) %>%
-  arrange(classid, stdid) %>% 
-  filter(reservation == 0, elite == 0) %>% 
-  lm(segregation ~ factor(endline), data = .) %>% 
-  summary()
-```
-
-
-
-```{r}
-trends_file %>% 
-  read_csv() %>% 
-  ggplot(aes(year, segregation, group = reservation, color = reservation)) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  geom_point(size = 2) +
-  geom_line(size = 1) +
-  facet_wrap(vars(elite)) +
-  labs(
-    x = "Year",
-    y = "Relative Segregation"
+```{r, warning=FALSE}
+lm1_r <- 
+  lm(
+    e_seg_studymate ~ b_seg_studymate + female + age, 
+    data = df %>% filter(reservation == "Reservation")
   )
+
+lm1_nr <- 
+  lm(
+    e_seg_studymate ~ b_seg_studymate + female + age, 
+    data = df %>% filter(reservation == "Non-reservation")
+  )
+
+lm2_r <- 
+  lm(
+    e_seg_studymate ~ b_seg_studymate + female + age + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == "Reservation")
+  )
+
+lm2_nr <- 
+  lm(
+    e_seg_studymate ~ b_seg_studymate + female + age + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == "Non-reservation")
+  )
+
+lm3_r <- lm(
+  e_seg_studymate ~ b_seg_studymate + female + age + ea_polic_integration_students4 + ea_polic_integration_students6, 
+  data = df %>% filter(reservation == "Reservation")
+)
+
+lm3_nr <- lm(
+  e_seg_studymate ~ b_seg_studymate + female + age + ea_polic_integration_students4 + ea_polic_integration_students6, 
+  data = df %>% filter(reservation == "Non-reservation")
+)
+
+lm4_r <- lm(
+  e_seg_studymate ~ b_seg_studymate + female + age + ea_polic_integration_students4 + ea_polic_integration_students6 + stu_reserved, 
+  data = df %>% filter(reservation == "Reservation")
+)
+
+lm4_nr <- lm(
+  e_seg_studymate ~ b_seg_studymate + female + age + ea_polic_integration_students4 + ea_polic_integration_students6 + stu_reserved, 
+  data = df %>% filter(reservation == "Non-reservation")
+)
+
+lm5_r <- lm(
+  e_seg_studymate ~ b_seg_studymate + female + age + ea_polic_integration_students4 + ea_polic_integration_students6 + stu_reserved + fac_reserved, 
+  data = df %>% filter(reservation == "Reservation")
+)
+
+lm5_nr <- lm(
+  e_seg_studymate ~ b_seg_studymate + female + age + ea_polic_integration_students4 + ea_polic_integration_students6 + stu_reserved + fac_reserved, 
+  data = df %>% filter(reservation == "Non-reservation")
+)
+
+rob_se <- 
+  list(
+    sqrt(diag(vcovHC(lm1_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr, type = "HC1"))),
+    sqrt(diag(vcovHC(lm2_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm2_nr, type = "HC1"))),
+    sqrt(diag(vcovHC(lm3_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm3_nr, type = "HC1"))),
+    sqrt(diag(vcovHC(lm4_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm4_nr, type = "HC1"))),
+    sqrt(diag(vcovHC(lm5_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm5_nr, type = "HC1")))
+  )
+
+stargazer(
+  lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr,
+  se = rob_se,
+  header = F,
+  digits = 3,
+  model.numbers = F,
+  dep.var.labels   = "Segregation - End of year 2",
+  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
+  type = "html",
+  out = "testing.html"
+)
 ```
+
 
