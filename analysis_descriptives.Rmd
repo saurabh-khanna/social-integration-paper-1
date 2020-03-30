@@ -41,6 +41,9 @@ stu_admin_all <-
     e_seg_studymate = if_else(!is.na(e_integration_studymate), 1 - e_integration_studymate, e_integration_studymate),
     e_seg_friend = if_else(!is.na(e_integration_friend), 1 - e_integration_friend, e_integration_friend)
   )
+
+stu_admin_all %>% 
+  select(ends_with("studymate"))
 ```
 
 Reading in network data:
