@@ -56,28 +56,20 @@ df <-
     by = "classid"
   ) %>% 
   mutate_at(
-    vars(starts_with("z_seg_g"), stu_res_prop),
+    vars(starts_with("z_seg_g"), stu_res_prop, age, stu_reserved),
     ~ scale(.) %>% as.vector
   )
+
+df %>% 
+  select(starts_with("z_seg_g"), stu_res_prop, age, stu_reserved) %>% 
+  summary()
 ```
 
 
 ```{r}
 df %>% 
-  filter(reservation == 1) %>% 
-  lm(ea_polic_integration_students3 ~ stu_res_prop + z_seg_g1 + female + age + ses + stu_reserved, data = .)
-
-df %>% 
-  filter(reservation == 1) %>% 
-  lm(z_seg_g2 ~ stu_res_prop + z_seg_g1 + female + age + ses + stu_reserved, data = .)
-
-df %>% 
-  filter(reservation == 0) %>% 
-  lm(ea_polic_integration_students3 ~ stu_res_prop + z_seg_g1 + female + age + ses + stu_reserved, data = .)
-
-df %>% 
-  filter(reservation == 0) %>% 
-  lm(z_seg_g2 ~ stu_res_prop + z_seg_g1 + female + age + ses + stu_reserved, data = .)
+  lm(ea_polic_integration_students3 ~ stu_res_prop + z_seg_g1 + female + age + ses + stu_reserved + reservation + elite, data = .) %>%
+  linearHypothesis(c("stu_res_prop = 0"), vcov = vcovHC, type = "HC1")
 ```
 
 
@@ -99,15 +91,15 @@ lm1_nr <-
 
 lm2_r <- 
   ivreg(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students3
-    | . - ea_polic_integration_students3 + stu_res_prop, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students2
+    | . - ea_polic_integration_students2 + stu_res_prop, 
     data = df %>% filter(reservation == 1)
   )
 
 lm2_nr <- 
   ivreg(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students3
-    | . - ea_polic_integration_students3 + stu_res_prop,
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students2
+    | . - ea_polic_integration_students2 + stu_res_prop,
     data = df %>% filter(reservation == 0)
   )
 
@@ -176,13 +168,13 @@ stargazer(
   dep.var.caption  = "Segregation - End of year 2 (by student reservation status)",
   dep.var.labels.include  = F,
   column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Segregation - Start of year 1", "Mentoring programs", "Diverse hostels", "Diverse course sections", "Integration courses", "Constant"),
+  covariate.labels = c("Segregation - Start of year 1", "Extracurricular activities", "Diverse hostels", "Diverse course sections", "Integration courses", "Constant"),
   keep = c("z_seg", "ea_", "Constant"),
   keep.stat = c("n", "ser"),
   type = "html",
   out = "testing.html",
   notes = c(
-    "All models control for proportion of seats reserved, student gender, socioeconomic status, and age.",
+    "All models control for <i>proportion of seats reserved, student gender, socioeconomic status,</i> and <i>age</i>.",
     "Instrument: Proportion of reservation students in each department-year."
   )
 )
@@ -205,15 +197,15 @@ lm1_nr <-
 
 lm2_r <- 
   ivreg(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students3
-    | . - ea_polic_integration_students3 + stu_res_prop, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students2
+    | . - ea_polic_integration_students2 + stu_res_prop, 
     data = df %>% filter(reservation == 1)
   )
 
 lm2_nr <- 
   ivreg(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students3
-    | . - ea_polic_integration_students3 + stu_res_prop,
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students2
+    | . - ea_polic_integration_students2 + stu_res_prop,
     data = df %>% filter(reservation == 0)
   )
 
@@ -282,7 +274,7 @@ stargazer(
   dep.var.caption  = "Segregation - End of year 4 (by student reservation status)",
   dep.var.labels.include  = F,
   column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Segregation - Start of year 3", "Mentoring programs", "Diverse hostels", "Diverse course sections", "Integration courses", "Constant"),
+  covariate.labels = c("Segregation - Start of year 3", "Extracurricular activities", "Diverse hostels", "Diverse course sections", "Integration courses", "Constant"),
   keep = c("z_seg", "ea_", "Constant"),
   keep.stat = c("n", "ser"),
   type = "html",
