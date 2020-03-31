@@ -45,11 +45,39 @@ df <-
     z_seg_g2 = if_else(grade == 2, e_seg_studymate, NA_real_),
     z_seg_g3 = if_else(grade == 4, b_seg_studymate, NA_real_),
     z_seg_g4 = if_else(grade == 4, e_seg_studymate, NA_real_)
+  )
+
+df <-
+  df %>% 
+  left_join(
+    df %>% 
+      group_by(classid) %>% 
+      summarize(stu_res_prop = mean(reservation, na.rm = TRUE)),
+    by = "classid"
   ) %>% 
   mutate_at(
-    vars(starts_with("z_seg_g")),
+    vars(starts_with("z_seg_g"), stu_res_prop),
     ~ scale(.) %>% as.vector
   )
+```
+
+
+```{r}
+df %>% 
+  filter(reservation == 1) %>% 
+  lm(ea_polic_integration_students3 ~ stu_res_prop + z_seg_g1 + female + age + ses + stu_reserved, data = .)
+
+df %>% 
+  filter(reservation == 1) %>% 
+  lm(z_seg_g2 ~ stu_res_prop + z_seg_g1 + female + age + ses + stu_reserved, data = .)
+
+df %>% 
+  filter(reservation == 0) %>% 
+  lm(ea_polic_integration_students3 ~ stu_res_prop + z_seg_g1 + female + age + ses + stu_reserved, data = .)
+
+df %>% 
+  filter(reservation == 0) %>% 
+  lm(z_seg_g2 ~ stu_res_prop + z_seg_g1 + female + age + ses + stu_reserved, data = .)
 ```
 
 
@@ -59,61 +87,69 @@ df <-
 ```{r, warning=FALSE, results="hide"}
 lm1_r <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved, 
     data = df %>% filter(reservation == 1)
   )
 
 lm1_nr <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved, 
     data = df %>% filter(reservation == 0)
   )
 
 lm2_r <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved, 
+  ivreg(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students3
+    | . - ea_polic_integration_students3 + stu_res_prop, 
     data = df %>% filter(reservation == 1)
   )
 
 lm2_nr <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved, 
+  ivreg(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students3
+    | . - ea_polic_integration_students3 + stu_res_prop,
     data = df %>% filter(reservation == 0)
   )
 
 lm3_r <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4, 
+  ivreg(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 
+    | . - ea_polic_integration_students4 + stu_res_prop, 
     data = df %>% filter(reservation == 1)
   )
 
 lm3_nr <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4,
+  ivreg(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 
+    | . - ea_polic_integration_students4 + stu_res_prop,
     data = df %>% filter(reservation == 0)
   )
 
 lm4_r <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5, 
+  ivreg(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students5
+    | . - ea_polic_integration_students5 + stu_res_prop, 
     data = df %>% filter(reservation == 1)
   )
 
 lm4_nr <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
+  ivreg(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students5 
+    | . - ea_polic_integration_students5 + stu_res_prop,
     data = df %>% filter(reservation == 0)
   )
 
 lm5_r <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
+  ivreg(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students6
+    | . - ea_polic_integration_students6 + stu_res_prop, 
     data = df %>% filter(reservation == 1)
   )
 
 lm5_nr <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
+  ivreg(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students6
+    | . - ea_polic_integration_students6 + stu_res_prop, 
     data = df %>% filter(reservation == 0)
   )
 
@@ -137,14 +173,18 @@ stargazer(
   header = F,
   digits = 3,
   model.numbers = F,
-  dep.var.caption  = "Segregation - End of year 2",
-  dep.var.labels  = "Student reservation status",
+  dep.var.caption  = "Segregation - End of year 2 (by student reservation status)",
+  dep.var.labels.include  = F,
   column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Segregation - Start of year 1", "Proportion of student seats reserved", "Diverse hostels", "Diverse course sections", "Integration courses taught", "Constant"),
-  keep = c("b_seg", "stu_", "ea_", "Constant"),
+  covariate.labels = c("Segregation - Start of year 1", "Mentoring programs", "Diverse hostels", "Diverse course sections", "Integration courses", "Constant"),
+  keep = c("z_seg", "ea_", "Constant"),
+  keep.stat = c("n", "ser"),
   type = "html",
   out = "testing.html",
-  notes = "All models control for student gender, socioeconomic status, and age."
+  notes = c(
+    "All models control for proportion of seats reserved, student gender, socioeconomic status, and age.",
+    "Instrument: Proportion of reservation students in each department-year."
+  )
 )
 ```
 
@@ -153,62 +193,70 @@ stargazer(
 ```{r, warning=FALSE, results="hide"}
 lm1_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses, 
-    data = df %>% filter(reservation == 1, grade == 4)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved, 
+    data = df %>% filter(reservation == 1)
   )
 
 lm1_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses, 
-    data = df %>% filter(reservation == 0, grade == 4)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved, 
+    data = df %>% filter(reservation == 0)
   )
 
 lm2_r <- 
-  lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved, 
-    data = df %>% filter(reservation == 1, grade == 4)
+  ivreg(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students3
+    | . - ea_polic_integration_students3 + stu_res_prop, 
+    data = df %>% filter(reservation == 1)
   )
 
 lm2_nr <- 
-  lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved, 
-    data = df %>% filter(reservation == 0, grade == 4)
+  ivreg(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students3
+    | . - ea_polic_integration_students3 + stu_res_prop,
+    data = df %>% filter(reservation == 0)
   )
 
 lm3_r <- 
-  lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4, 
-    data = df %>% filter(reservation == 1, grade == 4)
+  ivreg(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4 
+    | . - ea_polic_integration_students4 + stu_res_prop, 
+    data = df %>% filter(reservation == 1)
   )
 
 lm3_nr <- 
-  lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4,
-    data = df %>% filter(reservation == 0, grade == 4)
+  ivreg(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4 
+    | . - ea_polic_integration_students4 + stu_res_prop,
+    data = df %>% filter(reservation == 0)
   )
 
 lm4_r <- 
-  lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5, 
-    data = df %>% filter(reservation == 1, grade == 4)
+  ivreg(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students5
+    | . - ea_polic_integration_students5 + stu_res_prop, 
+    data = df %>% filter(reservation == 1)
   )
 
 lm4_nr <- 
-  lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
-    data = df %>% filter(reservation == 0, grade == 4)
+  ivreg(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students5 
+    | . - ea_polic_integration_students5 + stu_res_prop,
+    data = df %>% filter(reservation == 0)
   )
 
 lm5_r <- 
-  lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
-    data = df %>% filter(reservation == 1, grade == 4)
+  ivreg(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students6
+    | . - ea_polic_integration_students6 + stu_res_prop, 
+    data = df %>% filter(reservation == 1)
   )
 
 lm5_nr <- 
-  lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
-    data = df %>% filter(reservation == 0, grade == 4)
+  ivreg(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students6
+    | . - ea_polic_integration_students6 + stu_res_prop, 
+    data = df %>% filter(reservation == 0)
   )
 
 rob_se <- 
@@ -231,14 +279,18 @@ stargazer(
   header = F,
   digits = 3,
   model.numbers = F,
-  dep.var.caption  = "Segregation - End of year 4",
-  dep.var.labels  = "Student reservation status",
+  dep.var.caption  = "Segregation - End of year 4 (by student reservation status)",
+  dep.var.labels.include  = F,
   column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Segregation - Start of year 3", "Proportion of student seats reserved", "Diverse hostels", "Diverse course sections", "Integration courses taught", "Constant"),
-  keep = c("b_seg", "stu_", "ea_", "Constant"),
+  covariate.labels = c("Segregation - Start of year 3", "Mentoring programs", "Diverse hostels", "Diverse course sections", "Integration courses", "Constant"),
+  keep = c("z_seg", "ea_", "Constant"),
+  keep.stat = c("n", "ser"),
   type = "html",
   out = "testing.html",
-  notes = "All models control for student gender, socioeconomic status, and age."
+  notes = c(
+    "All models control for proportion of seats reserved, student gender, socioeconomic status, and age.",
+    "Instrument: Proportion of reservation students in each department-year."
+  )
 )
 ```
 
@@ -247,62 +299,62 @@ stargazer(
 ```{r, warning=FALSE, results="hide"}
 lm1_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses, 
-    data = df %>% filter(reservation == 1, grade == 2, elite == 1)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses, 
+    data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm1_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses, 
-    data = df %>% filter(reservation == 0, grade == 2, elite == 1)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses, 
+    data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm2_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved, 
-    data = df %>% filter(reservation == 1, grade == 2, elite == 1)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved, 
+    data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm2_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved, 
-    data = df %>% filter(reservation == 0, grade == 2, elite == 1)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved, 
+    data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm3_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4, 
-    data = df %>% filter(reservation == 1, grade == 2, elite == 1)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm3_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4,
-    data = df %>% filter(reservation == 0, grade == 2, elite == 1)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4,
+    data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm4_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
-    data = df %>% filter(reservation == 1, grade == 2, elite == 1)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
+    data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm4_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
-    data = df %>% filter(reservation == 0, grade == 2, elite == 1)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
+    data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm5_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
-    data = df %>% filter(reservation == 1, grade == 2, elite == 1)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
+    data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm5_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
-    data = df %>% filter(reservation == 0, grade == 2, elite == 1)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
+    data = df %>% filter(reservation == 0, elite == 1)
   )
 
 rob_se <- 
@@ -329,7 +381,7 @@ stargazer(
   dep.var.labels  = "Student reservation status",
   column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
   covariate.labels = c("Segregation - Start of year 1", "Proportion of student seats reserved", "Diverse hostels", "Diverse course sections", "Integration courses taught", "Constant"),
-  keep = c("b_seg", "stu_", "ea_", "Constant"),
+  keep = c("z_seg", "stu_", "ea_", "Constant"),
   type = "html",
   out = "testing.html",
   notes = "All models control for student gender, socioeconomic status, and age.",
@@ -342,62 +394,62 @@ stargazer(
 ```{r, warning=FALSE, results="hide"}
 lm1_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses, 
-    data = df %>% filter(reservation == 1, grade == 4, elite == 1)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses, 
+    data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm1_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses, 
-    data = df %>% filter(reservation == 0, grade == 4, elite == 1)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses, 
+    data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm2_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved, 
-    data = df %>% filter(reservation == 1, grade == 4, elite == 1)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved, 
+    data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm2_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved, 
-    data = df %>% filter(reservation == 0, grade == 4, elite == 1)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved, 
+    data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm3_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4, 
-    data = df %>% filter(reservation == 1, grade == 4, elite == 1)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm3_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4,
-    data = df %>% filter(reservation == 0, grade == 4, elite == 1)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4,
+    data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm4_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
-    data = df %>% filter(reservation == 1, grade == 4, elite == 1)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
+    data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm4_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
-    data = df %>% filter(reservation == 0, grade == 4, elite == 1)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
+    data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm5_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
-    data = df %>% filter(reservation == 1, grade == 4, elite == 1)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
+    data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm5_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
-    data = df %>% filter(reservation == 0, grade == 4, elite == 1)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
+    data = df %>% filter(reservation == 0, elite == 1)
   )
 
 rob_se <- 
@@ -424,7 +476,7 @@ stargazer(
   dep.var.labels  = "Student reservation status",
   column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
   covariate.labels = c("Segregation - Start of year 3", "Proportion of student seats reserved", "Diverse hostels", "Diverse course sections", "Integration courses taught", "Constant"),
-  keep = c("b_seg", "stu_", "ea_", "Constant"),
+  keep = c("z_seg", "stu_", "ea_", "Constant"),
   type = "html",
   out = "testing.html",
   notes = "All models control for student gender, socioeconomic status, and age.",
@@ -438,62 +490,62 @@ stargazer(
 ```{r, warning=FALSE, results="hide"}
 lm1_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses, 
-    data = df %>% filter(reservation == 1, grade == 2, elite == 0)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses, 
+    data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm1_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses, 
-    data = df %>% filter(reservation == 0, grade == 2, elite == 0)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses, 
+    data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm2_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved, 
-    data = df %>% filter(reservation == 1, grade == 2, elite == 0)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved, 
+    data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm2_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved, 
-    data = df %>% filter(reservation == 0, grade == 2, elite == 0)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved, 
+    data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm3_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4, 
-    data = df %>% filter(reservation == 1, grade == 2, elite == 0)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm3_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4,
-    data = df %>% filter(reservation == 0, grade == 2, elite == 0)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4,
+    data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm4_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
-    data = df %>% filter(reservation == 1, grade == 2, elite == 0)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
+    data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm4_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
-    data = df %>% filter(reservation == 0, grade == 2, elite == 0)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
+    data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm5_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
-    data = df %>% filter(reservation == 1, grade == 2, elite == 0)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
+    data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm5_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
-    data = df %>% filter(reservation == 0, grade == 2, elite == 0)
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
+    data = df %>% filter(reservation == 0, elite == 0)
   )
 
 rob_se <- 
@@ -520,7 +572,7 @@ stargazer(
   dep.var.labels  = "Student reservation status",
   column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
   covariate.labels = c("Segregation - Start of year 1", "Proportion of student seats reserved", "Diverse hostels", "Diverse course sections", "Integration courses taught", "Constant"),
-  keep = c("b_seg", "stu_", "ea_", "Constant"),
+  keep = c("z_seg", "stu_", "ea_", "Constant"),
   type = "html",
   out = "testing.html",
   notes = "All models control for student gender, socioeconomic status, and age.",
@@ -533,62 +585,62 @@ stargazer(
 ```{r, warning=FALSE, results="hide"}
 lm1_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses, 
-    data = df %>% filter(reservation == 1, grade == 4, elite == 0)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses, 
+    data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm1_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses, 
-    data = df %>% filter(reservation == 0, grade == 4, elite == 0)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses, 
+    data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm2_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved, 
-    data = df %>% filter(reservation == 1, grade == 4, elite == 0)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved, 
+    data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm2_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved, 
-    data = df %>% filter(reservation == 0, grade == 4, elite == 0)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved, 
+    data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm3_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4, 
-    data = df %>% filter(reservation == 1, grade == 4, elite == 0)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm3_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4,
-    data = df %>% filter(reservation == 0, grade == 4, elite == 0)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4,
+    data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm4_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
-    data = df %>% filter(reservation == 1, grade == 4, elite == 0)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
+    data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm4_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
-    data = df %>% filter(reservation == 0, grade == 4, elite == 0)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5,
+    data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm5_r <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
-    data = df %>% filter(reservation == 1, grade == 4, elite == 0)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
+    data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm5_nr <- 
   lm(
-    e_seg_studymate ~ b_seg_studymate + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
-    data = df %>% filter(reservation == 0, grade == 4, elite == 0)
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + stu_reserved + ea_polic_integration_students4 + ea_polic_integration_students5 + ea_polic_integration_students6, 
+    data = df %>% filter(reservation == 0, elite == 0)
   )
 
 rob_se <- 
@@ -615,7 +667,7 @@ stargazer(
   dep.var.labels  = "Student reservation status",
   column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
   covariate.labels = c("Segregation - Start of year 3", "Proportion of student seats reserved", "Diverse hostels", "Diverse course sections", "Integration courses taught", "Constant"),
-  keep = c("b_seg", "stu_", "ea_", "Constant"),
+  keep = c("z_seg", "stu_", "ea_", "Constant"),
   type = "html",
   out = "testing.html",
   notes = "All models control for student gender, socioeconomic status, and age.",
@@ -623,22 +675,49 @@ stargazer(
 )
 ```
 
-## Homophily v Policy
+## Reciprocity v Policy
 
 ```{r}
 df %>%
   mutate(
-    z_seg_g1 = if_else(grade == 2, b_seg_studymate, NA_real_),
-    z_seg_g2 = if_else(grade == 2, e_seg_studymate, NA_real_),
-    z_seg_g3 = if_else(grade == 4, b_seg_studymate, NA_real_),
-    z_seg_g4 = if_else(grade == 4, e_seg_studymate, NA_real_)
-  ) %>% 
-  mutate_at(
-    vars(starts_with("z_seg_g")),
-    ~ scale(.) %>% as.vector
+    z_reciprocity_g1 = if_else(grade == 2, b_reciprocity, NA_real_),
+    z_reciprocity_g2 = if_else(grade == 2, e_reciprocity, NA_real_),
+    z_reciprocity_g3 = if_else(grade == 4, b_reciprocity, NA_real_),
+    z_reciprocity_g4 = if_else(grade == 4, e_reciprocity, NA_real_)
   ) %>%
-  filter(reservation == 1) %>% 
-  select(starts_with("z_seg_g")) %>% 
+  group_by(department_id) %>% 
+  mutate_at(vars(starts_with("z_reciprocity")), mean, na.rm = T) %>% 
+  ungroup() %>% 
+  distinct(department_id, .keep_all = TRUE) %>% 
+  #distinct(classid, .keep_all = TRUE) %>% 
+  # mutate_at(
+  #   vars(starts_with("z_reciprocity")),
+  #   ~ scale(.) %>% as.vector
+  # ) %>%
+  # filter(reservation == 1) %>% 
+  select(department_id, starts_with("z_reciprocity"))
+```
+
+```{r}
+df %>% 
+  distinct(department_id, .keep_all = T) %>% 
+  select(department_id, stu_reserved, fac_reserved) %>% 
+  pivot_longer(
+    cols = -department_id,
+    names_to = "type",
+    values_to = "percent"
+  ) %>% 
+  ggplot(aes(percent, stat(count), color = type)) +
+  geom_freqpoly(size = 1) +
+  labs(
+    x = "Percent seats reserved",
+    y = "Count (departments)"
+  )
+
+df %>% 
+  lm(b_seg_studymate ~ stu_reserved, data = .) %>% 
   summary()
+
+cor(df$b_seg_studymate, df$stu_reserved, use = "complete.obs")
 ```
 
