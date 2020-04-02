@@ -887,23 +887,89 @@ stargazer(
 ## Reciprocity v Policy
 
 ```{r}
-df %>%
+df <-
+  df %>%
   mutate(
-    z_reciprocity_g1 = if_else(grade == 2, b_reciprocity, NA_real_),
-    z_reciprocity_g2 = if_else(grade == 2, e_reciprocity, NA_real_),
-    z_reciprocity_g3 = if_else(grade == 4, b_reciprocity, NA_real_),
-    z_reciprocity_g4 = if_else(grade == 4, e_reciprocity, NA_real_)
+    diff_homophily = e_homophily - b_homophily,
+    diff_reciprocity = e_reciprocity - b_reciprocity,
+    diff_transitivity = e_transitivity - b_transitivity,
+    diff_seg_studymate = e_seg_studymate - b_seg_studymate,
+    diff_ct = e_ct_score_perc - b_ct_score_perc,
+    diff_ql = e_ql_score_perc - b_ql_score_perc,
+    diff_math = e_math_g3_score_perc - b_math_g1_score_perc,
+    diff_physics = e_physics_g3_score_perc - b_physics_g1_score_perc
   ) %>%
-  group_by(department_id) %>% 
-  mutate_at(vars(starts_with("z_reciprocity")), mean, na.rm = T) %>% 
-  ungroup() %>% 
-  distinct(department_id, .keep_all = TRUE) %>% 
-  #distinct(classid, .keep_all = TRUE) %>% 
-  # mutate_at(
-  #   vars(starts_with("z_reciprocity")),
-  #   ~ scale(.) %>% as.vector
-  # ) %>%
-  # filter(reservation == 1) %>% 
-  select(department_id, starts_with("z_reciprocity"))
+  mutate_at(
+    vars(starts_with("diff_")),
+    ~ scale(.) %>% as.vector
+  )
+
+  
+lm1_r <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 1)
+  )
+
+lm1_nr <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 0)
+  )
+
+lm1_r_e <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 1, elite == 1)
+  )
+
+lm1_nr_e <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 0, elite == 1)
+  )
+
+lm1_r_ne <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 1, elite == 0)
+  )
+
+lm1_nr_ne <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 0, elite == 0)
+  )
+
+
+rob_se <- 
+  list(
+    sqrt(diag(vcovHC(lm1_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_r_e, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr_e, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_r_ne, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr_ne, type = "HC1")))
+  )
+
+
+stargazer(
+  lm1_r, lm1_nr, lm1_r_e, lm1_nr_e, lm1_r_ne, lm1_nr_ne,
+  se = rob_se,
+  header = F,
+  digits = 3,
+  model.numbers = F,
+  dep.var.caption  = "Change in Segregation",
+  dep.var.labels.include  = F,
+  column.labels   = c("Reservation", "Non-reservation", "Reservation elite", "Non-reservation elite", "Reservation non-elite", "Non-reservation non-elite"),
+  covariate.labels = c("Change in homophily", "Change in reciprocity", "Change in transitivity", "Constant"),
+  keep = c("diff_", "Constant"),
+  type = "html",
+  out = "testing.html"
+#  omit.stat = c("all")
+)
+
+df %>% 
+  summarize_at(vars(diff_ct, diff_ql, diff_math, diff_physics), ~ sum(!is.na(.)))
 ```
 

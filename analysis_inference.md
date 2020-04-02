@@ -1,7 +1,7 @@
 Analysis for SN Paper 1 - Inference
 ================
 Saurabh Khanna
-2020-03-31
+2020-04-01
 
   - [Integration v Policy](#integration-v-policy)
       - [Y1 to Y2](#y1-to-y2)
@@ -985,37 +985,119 @@ stargazer(
 ## Reciprocity v Policy
 
 ``` r
-df %>%
+df <-
+  df %>%
   mutate(
-    z_reciprocity_g1 = if_else(grade == 2, b_reciprocity, NA_real_),
-    z_reciprocity_g2 = if_else(grade == 2, e_reciprocity, NA_real_),
-    z_reciprocity_g3 = if_else(grade == 4, b_reciprocity, NA_real_),
-    z_reciprocity_g4 = if_else(grade == 4, e_reciprocity, NA_real_)
+    diff_homophily = e_homophily - b_homophily,
+    diff_reciprocity = e_reciprocity - b_reciprocity,
+    diff_transitivity = e_transitivity - b_transitivity,
+    diff_seg_studymate = e_seg_studymate - b_seg_studymate,
+    diff_ct = e_ct_score_perc - b_ct_score_perc,
+    diff_ql = e_ql_score_perc - b_ql_score_perc,
+    diff_math = e_math_g3_score_perc - b_math_g1_score_perc,
+    diff_physics = e_physics_g3_score_perc - b_physics_g1_score_perc
   ) %>%
-  group_by(department_id) %>% 
-  mutate_at(vars(starts_with("z_reciprocity")), mean, na.rm = T) %>% 
-  ungroup() %>% 
-  distinct(department_id, .keep_all = TRUE) %>% 
-  #distinct(classid, .keep_all = TRUE) %>% 
-  # mutate_at(
-  #   vars(starts_with("z_reciprocity")),
-  #   ~ scale(.) %>% as.vector
-  # ) %>%
-  # filter(reservation == 1) %>% 
-  select(department_id, starts_with("z_reciprocity"))
+  mutate_at(
+    vars(starts_with("diff_")),
+    ~ scale(.) %>% as.vector
+  )
+
+  
+lm1_r <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 1)
+  )
+
+lm1_nr <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 0)
+  )
+
+lm1_r_e <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 1, elite == 1)
+  )
+
+lm1_nr_e <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 0, elite == 1)
+  )
+
+lm1_r_ne <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 1, elite == 0)
+  )
+
+lm1_nr_ne <-
+  lm(
+    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    data = df %>% filter(reservation == 0, elite == 0)
+  )
+
+
+rob_se <- 
+  list(
+    sqrt(diag(vcovHC(lm1_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_r_e, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr_e, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_r_ne, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr_ne, type = "HC1")))
+  )
+
+
+stargazer(
+  lm1_r, lm1_nr, lm1_r_e, lm1_nr_e, lm1_r_ne, lm1_nr_ne,
+  se = rob_se,
+  header = F,
+  digits = 3,
+  model.numbers = F,
+  dep.var.caption  = "Change in Segregation",
+  dep.var.labels.include  = F,
+  column.labels   = c("Reservation", "Non-reservation", "Reservation elite", "Non-reservation elite", "Reservation non-elite", "Non-reservation non-elite"),
+  covariate.labels = c("Change in homophily", "Change in reciprocity", "Change in transitivity", "Constant"),
+  keep = c("diff_", "Constant"),
+  type = "html",
+  out = "testing.html"
+#  omit.stat = c("all")
+)
 ```
 
-    ## # A tibble: 100 x 5
-    ##    department_id z_reciprocity_g1 z_reciprocity_g2 z_reciprocity_g3
-    ##    <chr>                    <dbl>            <dbl>            <dbl>
-    ##  1 IR001CS                  0.435            0.428            0.411
-    ##  2 IR001EE                  0.310            0.356            0.48 
-    ##  3 IR002CS                  0.440            0.422            0.463
-    ##  4 IR002EE                  0.457            0.432            0.436
-    ##  5 IR003CS                  0.414            0.304            0.435
-    ##  6 IR003EE                  0.372            0.352            0.399
-    ##  7 IR004CS                  0.472            0.448            0.423
-    ##  8 IR004EE                  0.727            0.778            0.556
-    ##  9 IR005CS                  0.470            0.465            0.473
-    ## 10 IR005EE                  0.384            0.416            0.481
-    ## # … with 90 more rows, and 1 more variable: z_reciprocity_g4 <dbl>
+    ## 
+    ## <table style="text-align:center"><tr><td colspan="7" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td colspan="6">Change in Segregation</td></tr>
+    ## <tr><td></td><td colspan="6" style="border-bottom: 1px solid black"></td></tr>
+    ## <tr><td style="text-align:left"></td><td>Reservation</td><td>Non-reservation</td><td>Reservation elite</td><td>Non-reservation elite</td><td>Reservation non-elite</td><td>Non-reservation non-elite</td></tr>
+    ## <tr><td colspan="7" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Change in homophily</td><td>0.104<sup>***</sup></td><td>0.106<sup>***</sup></td><td>0.117<sup>***</sup></td><td>0.112<sup>***</sup></td><td>0.098<sup>***</sup></td><td>0.112<sup>***</sup></td></tr>
+    ## <tr><td style="text-align:left"></td><td>(0.013)</td><td>(0.014)</td><td>(0.029)</td><td>(0.030)</td><td>(0.014)</td><td>(0.016)</td></tr>
+    ## <tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    ## <tr><td style="text-align:left">Change in reciprocity</td><td>-0.052<sup>***</sup></td><td>0.046<sup>**</sup></td><td>-0.117<sup>**</sup></td><td>0.206<sup>***</sup></td><td>-0.043<sup>**</sup></td><td>0.026</td></tr>
+    ## <tr><td style="text-align:left"></td><td>(0.018)</td><td>(0.020)</td><td>(0.050)</td><td>(0.053)</td><td>(0.020)</td><td>(0.022)</td></tr>
+    ## <tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    ## <tr><td style="text-align:left">Change in transitivity</td><td>0.059<sup>***</sup></td><td>-0.031</td><td>0.113<sup>**</sup></td><td>-0.103<sup>*</sup></td><td>0.051<sup>**</sup></td><td>-0.018</td></tr>
+    ## <tr><td style="text-align:left"></td><td>(0.019)</td><td>(0.021)</td><td>(0.056)</td><td>(0.058)</td><td>(0.021)</td><td>(0.023)</td></tr>
+    ## <tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    ## <tr><td style="text-align:left">Constant</td><td>0.040<sup>***</sup></td><td>-0.042<sup>***</sup></td><td>-0.021</td><td>0.053</td><td>0.048<sup>***</sup></td><td>-0.053<sup>***</sup></td></tr>
+    ## <tr><td style="text-align:left"></td><td>(0.012)</td><td>(0.012)</td><td>(0.036)</td><td>(0.037)</td><td>(0.013)</td><td>(0.013)</td></tr>
+    ## <tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    ## <tr><td colspan="7" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>7,117</td><td>6,815</td><td>1,077</td><td>1,080</td><td>6,040</td><td>5,735</td></tr>
+    ## <tr><td style="text-align:left">R<sup>2</sup></td><td>0.011</td><td>0.011</td><td>0.024</td><td>0.027</td><td>0.009</td><td>0.010</td></tr>
+    ## <tr><td style="text-align:left">Adjusted R<sup>2</sup></td><td>0.010</td><td>0.011</td><td>0.021</td><td>0.025</td><td>0.008</td><td>0.010</td></tr>
+    ## <tr><td style="text-align:left">Residual Std. Error</td><td>1.016 (df = 7113)</td><td>0.971 (df = 6811)</td><td>1.113 (df = 1073)</td><td>1.060 (df = 1076)</td><td>0.997 (df = 6036)</td><td>0.953 (df = 5731)</td></tr>
+    ## <tr><td style="text-align:left">F Statistic</td><td>26.095<sup>***</sup> (df = 3; 7113)</td><td>26.080<sup>***</sup> (df = 3; 6811)</td><td>8.833<sup>***</sup> (df = 3; 1073)</td><td>10.033<sup>***</sup> (df = 3; 1076)</td><td>17.517<sup>***</sup> (df = 3; 6036)</td><td>19.938<sup>***</sup> (df = 3; 5731)</td></tr>
+    ## <tr><td colspan="7" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td colspan="6" style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
+    ## </table>
+
+``` r
+df %>% 
+  summarize_at(vars(diff_ct, diff_ql, diff_math, diff_physics), ~ sum(!is.na(.)))
+```
+
+    ## # A tibble: 1 x 4
+    ##   diff_ct diff_ql diff_math diff_physics
+    ##     <int>   <int>     <int>        <int>
+    ## 1    3987    3006      3762         3754
