@@ -79,6 +79,21 @@ e_network <-
 ```
 
 
+```{r}
+# # writing out number of studymates per student
+# b_edges %>% 
+#   count(b_node1, name = "b_n_studymates") %>% 
+#   rename(stdid = b_node1) %>% 
+#   full_join(
+#     e_edges %>% 
+#       count(e_node1, name = "e_n_studymates") %>% 
+#       rename(stdid = e_node1),
+#     by = "stdid"
+#   ) %>% 
+#   write_csv(here::here("data/n_studymates.csv"))
+```
+
+
 ### Individual Level Segregation Scores
 
 ```{r, warning=FALSE}

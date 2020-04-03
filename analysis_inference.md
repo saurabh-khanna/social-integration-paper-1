@@ -1,7 +1,7 @@
 Analysis for SN Paper 1 - Inference
 ================
 Saurabh Khanna
-2020-04-01
+2020-04-02
 
   - [Integration v Policy](#integration-v-policy)
       - [Y1 to Y2](#y1-to-y2)
@@ -25,6 +25,7 @@ library(lmtest)
 data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
 trends_file <- here::here("data/trends.csv")
 fac_res_file <- here::here("data/fac_res_prop.csv")
+n_studymates_file <- here::here("data/n_studymates.csv")
 ```
 
 Read main data file:
@@ -49,12 +50,12 @@ df <-
   left_join(
     read_csv(fac_res_file),
     by = "department_id"
+  ) %>% 
+  left_join(
+    read_csv(n_studymates_file),
+    by = "stdid"
   )
-```
 
-    ## Warning: Column `department_id` has different attributes on LHS and RHS of join
-
-``` r
 df <-
   df %>% 
   left_join(
@@ -992,6 +993,7 @@ df <-
     diff_reciprocity = e_reciprocity - b_reciprocity,
     diff_transitivity = e_transitivity - b_transitivity,
     diff_seg_studymate = e_seg_studymate - b_seg_studymate,
+    diff_n_studymate = e_n_studymates - b_n_studymates,
     diff_ct = e_ct_score_perc - b_ct_score_perc,
     diff_ql = e_ql_score_perc - b_ql_score_perc,
     diff_math = e_math_g3_score_perc - b_math_g1_score_perc,
@@ -1005,37 +1007,37 @@ df <-
   
 lm1_r <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1)
   )
 
 lm1_nr <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 0)
   )
 
 lm1_r_e <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm1_nr_e <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm1_r_ne <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm1_nr_ne <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 0, elite == 0)
   )
 
@@ -1060,7 +1062,7 @@ stargazer(
   dep.var.caption  = "Change in Segregation",
   dep.var.labels.include  = F,
   column.labels   = c("Reservation", "Non-reservation", "Reservation elite", "Non-reservation elite", "Reservation non-elite", "Non-reservation non-elite"),
-  covariate.labels = c("Change in homophily", "Change in reciprocity", "Change in transitivity", "Constant"),
+  covariate.labels = c("Gains in studymates", "Gains in class homophily", "Gains in class reciprocity", "Gains in transitivity", "Constant"),
   keep = c("diff_", "Constant"),
   type = "html",
   out = "testing.html"
@@ -1072,23 +1074,26 @@ stargazer(
     ## <table style="text-align:center"><tr><td colspan="7" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td colspan="6">Change in Segregation</td></tr>
     ## <tr><td></td><td colspan="6" style="border-bottom: 1px solid black"></td></tr>
     ## <tr><td style="text-align:left"></td><td>Reservation</td><td>Non-reservation</td><td>Reservation elite</td><td>Non-reservation elite</td><td>Reservation non-elite</td><td>Non-reservation non-elite</td></tr>
-    ## <tr><td colspan="7" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Change in homophily</td><td>0.104<sup>***</sup></td><td>0.106<sup>***</sup></td><td>0.117<sup>***</sup></td><td>0.112<sup>***</sup></td><td>0.098<sup>***</sup></td><td>0.112<sup>***</sup></td></tr>
+    ## <tr><td colspan="7" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Gains in studymates</td><td>-0.052<sup>***</sup></td><td>-0.020</td><td>-0.031</td><td>-0.046</td><td>-0.055<sup>***</sup></td><td>-0.018</td></tr>
+    ## <tr><td style="text-align:left"></td><td>(0.017)</td><td>(0.016)</td><td>(0.040)</td><td>(0.037)</td><td>(0.019)</td><td>(0.018)</td></tr>
+    ## <tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    ## <tr><td style="text-align:left">Gains in class homophily</td><td>0.105<sup>***</sup></td><td>0.105<sup>***</sup></td><td>0.116<sup>***</sup></td><td>0.111<sup>***</sup></td><td>0.100<sup>***</sup></td><td>0.112<sup>***</sup></td></tr>
     ## <tr><td style="text-align:left"></td><td>(0.013)</td><td>(0.014)</td><td>(0.029)</td><td>(0.030)</td><td>(0.014)</td><td>(0.016)</td></tr>
     ## <tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-    ## <tr><td style="text-align:left">Change in reciprocity</td><td>-0.052<sup>***</sup></td><td>0.046<sup>**</sup></td><td>-0.117<sup>**</sup></td><td>0.206<sup>***</sup></td><td>-0.043<sup>**</sup></td><td>0.026</td></tr>
-    ## <tr><td style="text-align:left"></td><td>(0.018)</td><td>(0.020)</td><td>(0.050)</td><td>(0.053)</td><td>(0.020)</td><td>(0.022)</td></tr>
+    ## <tr><td style="text-align:left">Gains in class reciprocity</td><td>-0.037<sup>**</sup></td><td>0.053<sup>***</sup></td><td>-0.103<sup>**</sup></td><td>0.229<sup>***</sup></td><td>-0.029</td><td>0.031</td></tr>
+    ## <tr><td style="text-align:left"></td><td>(0.018)</td><td>(0.020)</td><td>(0.050)</td><td>(0.054)</td><td>(0.020)</td><td>(0.022)</td></tr>
     ## <tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-    ## <tr><td style="text-align:left">Change in transitivity</td><td>0.059<sup>***</sup></td><td>-0.031</td><td>0.113<sup>**</sup></td><td>-0.103<sup>*</sup></td><td>0.051<sup>**</sup></td><td>-0.018</td></tr>
+    ## <tr><td style="text-align:left">Gains in transitivity</td><td>0.058<sup>***</sup></td><td>-0.031</td><td>0.114<sup>**</sup></td><td>-0.103<sup>*</sup></td><td>0.051<sup>**</sup></td><td>-0.018</td></tr>
     ## <tr><td style="text-align:left"></td><td>(0.019)</td><td>(0.021)</td><td>(0.056)</td><td>(0.058)</td><td>(0.021)</td><td>(0.023)</td></tr>
     ## <tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-    ## <tr><td style="text-align:left">Constant</td><td>0.040<sup>***</sup></td><td>-0.042<sup>***</sup></td><td>-0.021</td><td>0.053</td><td>0.048<sup>***</sup></td><td>-0.053<sup>***</sup></td></tr>
-    ## <tr><td style="text-align:left"></td><td>(0.012)</td><td>(0.012)</td><td>(0.036)</td><td>(0.037)</td><td>(0.013)</td><td>(0.013)</td></tr>
+    ## <tr><td style="text-align:left">Constant</td><td>0.041<sup>***</sup></td><td>-0.042<sup>***</sup></td><td>-0.019</td><td>0.056</td><td>0.049<sup>***</sup></td><td>-0.053<sup>***</sup></td></tr>
+    ## <tr><td style="text-align:left"></td><td>(0.012)</td><td>(0.012)</td><td>(0.036)</td><td>(0.036)</td><td>(0.013)</td><td>(0.013)</td></tr>
     ## <tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
     ## <tr><td colspan="7" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>7,117</td><td>6,815</td><td>1,077</td><td>1,080</td><td>6,040</td><td>5,735</td></tr>
-    ## <tr><td style="text-align:left">R<sup>2</sup></td><td>0.011</td><td>0.011</td><td>0.024</td><td>0.027</td><td>0.009</td><td>0.010</td></tr>
-    ## <tr><td style="text-align:left">Adjusted R<sup>2</sup></td><td>0.010</td><td>0.011</td><td>0.021</td><td>0.025</td><td>0.008</td><td>0.010</td></tr>
-    ## <tr><td style="text-align:left">Residual Std. Error</td><td>1.016 (df = 7113)</td><td>0.971 (df = 6811)</td><td>1.113 (df = 1073)</td><td>1.060 (df = 1076)</td><td>0.997 (df = 6036)</td><td>0.953 (df = 5731)</td></tr>
-    ## <tr><td style="text-align:left">F Statistic</td><td>26.095<sup>***</sup> (df = 3; 7113)</td><td>26.080<sup>***</sup> (df = 3; 6811)</td><td>8.833<sup>***</sup> (df = 3; 1073)</td><td>10.033<sup>***</sup> (df = 3; 1076)</td><td>17.517<sup>***</sup> (df = 3; 6036)</td><td>19.938<sup>***</sup> (df = 3; 5731)</td></tr>
+    ## <tr><td style="text-align:left">R<sup>2</sup></td><td>0.013</td><td>0.012</td><td>0.025</td><td>0.029</td><td>0.011</td><td>0.011</td></tr>
+    ## <tr><td style="text-align:left">Adjusted R<sup>2</sup></td><td>0.013</td><td>0.011</td><td>0.021</td><td>0.026</td><td>0.011</td><td>0.010</td></tr>
+    ## <tr><td style="text-align:left">Residual Std. Error</td><td>1.014 (df = 7112)</td><td>0.971 (df = 6810)</td><td>1.113 (df = 1072)</td><td>1.060 (df = 1075)</td><td>0.996 (df = 6035)</td><td>0.952 (df = 5730)</td></tr>
+    ## <tr><td style="text-align:left">F Statistic</td><td>23.802<sup>***</sup> (df = 4; 7112)</td><td>20.272<sup>***</sup> (df = 4; 6810)</td><td>6.855<sup>***</sup> (df = 4; 1072)</td><td>8.112<sup>***</sup> (df = 4; 1075)</td><td>17.188<sup>***</sup> (df = 4; 6035)</td><td>15.399<sup>***</sup> (df = 4; 5730)</td></tr>
     ## <tr><td colspan="7" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td colspan="6" style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
     ## </table>
 

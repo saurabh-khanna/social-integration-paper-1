@@ -24,13 +24,14 @@ library(lmtest)
 data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
 trends_file <- here::here("data/trends.csv")
 fac_res_file <- here::here("data/fac_res_prop.csv")
+n_studymates_file <- here::here("data/n_studymates.csv")
 ```
 
 
 Read main data file:
 
 
-```{r message=F}
+```{r, message=F, warning=F}
 df <-
   data_file %>%
   read_rds() %>% 
@@ -50,6 +51,10 @@ df <-
   left_join(
     read_csv(fac_res_file),
     by = "department_id"
+  ) %>% 
+  left_join(
+    read_csv(n_studymates_file),
+    by = "stdid"
   )
 
 df <-
@@ -894,6 +899,7 @@ df <-
     diff_reciprocity = e_reciprocity - b_reciprocity,
     diff_transitivity = e_transitivity - b_transitivity,
     diff_seg_studymate = e_seg_studymate - b_seg_studymate,
+    diff_n_studymate = e_n_studymates - b_n_studymates,
     diff_ct = e_ct_score_perc - b_ct_score_perc,
     diff_ql = e_ql_score_perc - b_ql_score_perc,
     diff_math = e_math_g3_score_perc - b_math_g1_score_perc,
@@ -907,37 +913,37 @@ df <-
   
 lm1_r <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1)
   )
 
 lm1_nr <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 0)
   )
 
 lm1_r_e <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm1_nr_e <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm1_r_ne <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm1_nr_ne <-
   lm(
-    diff_seg_studymate ~ diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 0, elite == 0)
   )
 
@@ -962,7 +968,7 @@ stargazer(
   dep.var.caption  = "Change in Segregation",
   dep.var.labels.include  = F,
   column.labels   = c("Reservation", "Non-reservation", "Reservation elite", "Non-reservation elite", "Reservation non-elite", "Non-reservation non-elite"),
-  covariate.labels = c("Change in homophily", "Change in reciprocity", "Change in transitivity", "Constant"),
+  covariate.labels = c("Gains in studymates", "Gains in class homophily", "Gains in class reciprocity", "Gains in transitivity", "Constant"),
   keep = c("diff_", "Constant"),
   type = "html",
   out = "testing.html"
