@@ -428,3 +428,20 @@ stu_admin_all %>%
   write_rds(here::here("data/stu_admin_all_with_netvars.Rds"), compress = "gz")
 ```
 
+## Trends
+
+```{r}
+read_csv(here::here("data/trends.csv")) %>%
+  ggplot(aes(year, segregation, group = reservation, fill = reservation)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_col(position = "dodge") +
+  facet_wrap(vars(elite)) +
+  #theme_minimal() +
+  theme(legend.position = "bottom") +
+  labs(
+    x = "Year",
+    y = "Relative Segregation (SD units)",
+    fill = "Reservation status"
+  )
+```
+
