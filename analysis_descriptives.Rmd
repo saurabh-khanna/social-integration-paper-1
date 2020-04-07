@@ -113,8 +113,8 @@ stu_admin_all %>%
   mutate(
     survey = recode(
       survey, 
-      "b_seg_studymate" = "Baseline",
-      "e_seg_studymate" = "Endline"
+      "b_seg_studymate" = "Beginning of Year 1/Year 3",
+      "e_seg_studymate" = "End of Year 2/Year 4"
     )
   ) %>% 
   ggplot(aes(seg_studymate, stat(density), fill = factor(reservation))) +
@@ -123,7 +123,7 @@ stu_admin_all %>%
   labs(
     x = "Segregation",
     y = "Density",
-    fill = "Survey"
+    fill = "Reservation Status"
   )
 ```
 
@@ -436,7 +436,7 @@ read_csv(here::here("data/trends.csv")) %>%
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_col(position = "dodge") +
   facet_wrap(vars(elite)) +
-  #theme_minimal() +
+  theme_minimal() +
   theme(legend.position = "bottom") +
   labs(
     x = "Year",
