@@ -1976,10 +1976,9 @@ stargazer(
 
 
 
-
 ## Student fixed effects
 
-```{r, results="hide"}
+```{r, warning = F, results="hide"}
 df <-
   df %>%
   mutate(
@@ -2001,19 +2000,19 @@ df <-
   
 lm1_r <-
   lm(
-    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_homophily + diff_n_studymate + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1)
   )
 
 lm1_nr <-
   lm(
-    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_homophily + diff_n_studymate + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 0)
   )
 
 lm1_r_e <-
   lm(
-    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_homophily + diff_n_studymate + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1, elite == 1)
   )
 
@@ -2025,13 +2024,13 @@ lm1_nr_e <-
 
 lm1_r_ne <-
   lm(
-    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_homophily + diff_n_studymate + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm1_nr_ne <-
   lm(
-    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_homophily + diff_n_studymate + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 0, elite == 0)
   )
 
@@ -2049,7 +2048,7 @@ rob_se <-
 
 stargazer(
   lm1_r, lm1_nr, lm1_r_e, lm1_nr_e, lm1_r_ne, lm1_nr_ne,
-  title = "Table 15: Gains in segregation controlling for student fixed effects",
+  title = "Table 9: Gains in segregation controlling for student fixed effects",
   se = rob_se,
   header = F,
   digits = 2,
@@ -2057,7 +2056,7 @@ stargazer(
   dep.var.caption  = "Gains in Segregation",
   dep.var.labels.include  = F,
   column.labels   = c("Reservation", "Non-reservation", "Reservation elite", "Non-reservation elite", "Reservation non-elite", "Non-reservation non-elite"),
-  covariate.labels = c("Gains in studymates", "Gains in class homophily", "Gains in class reciprocity", "Gains in class transitivity", "Constant"),
+  covariate.labels = c("Gains in class homophily", "Gains in studymates", "Gains in class reciprocity", "Gains in class transitivity", "Constant"),
   keep = c("diff_", "Constant"),
   type = "html",
   out = "testing3.html",

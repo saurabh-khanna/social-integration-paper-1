@@ -1,7 +1,7 @@
 Analysis for SN Paper 1 - Inference
 ================
 Saurabh Khanna
-2020-04-06
+2020-04-07
 
   - [Integration v Policy](#integration-v-policy)
       - [Y1 to Y2](#y1-to-y2)
@@ -375,7 +375,7 @@ stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
   dep.var.caption  = "Segregation - End of year 2 (by student reservation status)",
   dep.var.labels.include  = F,
@@ -384,7 +384,8 @@ stargazer(
   keep = c("z_seg", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   omit.stat = c("all"),
   type = "html",
-  out = "testing.html",
+  out = "testing1.html",
+  #report = "vcp",
   notes = c(
     "All OLS models control for <i>proportion of seats officially reserved for students and faculty, student gender, student socioeconomic status,</i> and <i>student age</i>.",
     "Instruments for IV models: Proportion of seats officially reserved for students and faculty. The model also controls for <i>student gender, student socioeconomic status,</i> and <i>student age</i>."
@@ -506,7 +507,7 @@ stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
   dep.var.caption  = "Segregation - End of year 4 (by student reservation status)",
   dep.var.labels.include  = F,
@@ -515,7 +516,7 @@ stargazer(
   keep = c("z_seg", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   omit.stat = c("all"),
   type = "html",
-  out = "testing.html",
+  out = "testing1.html",
   notes = c(
     "All OLS models control for <i>proportion of seats officially reserved for students and faculty, student gender, student socioeconomic status,</i> and <i>student age</i>.",
     "Instruments for IV models: Proportion of seats officially reserved for students and faculty. The model also controls for <i>student gender, student socioeconomic status,</i> and <i>student age</i>."
@@ -637,7 +638,7 @@ stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
   dep.var.caption  = "Segregation at <i>elite</i> colleges - End of year 2 (by student reservation status)",
   dep.var.labels.include  = F,
@@ -645,7 +646,7 @@ stargazer(
   covariate.labels = c("Segregation - Start of year 1", "Mentoring program", "Diverse hostels", "Diverse course sections", "Integration courses", "Proportion of reservation students", "Proportion of reservation faculty", "Constant"),
   keep = c("z_seg", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   type = "html",
-  out = "testing.html",
+  out = "testing2.html",
   omit.stat = c("all"),
   notes = c(
     "All OLS models control for <i>proportion of seats officially reserved for students and faculty, student gender, student socioeconomic status,</i> and <i>student age</i>.",
@@ -769,7 +770,7 @@ stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
   dep.var.caption  = "Segregation at <i>elite</i> colleges - End of year 4 (by student reservation status)",
   dep.var.labels.include  = F,
@@ -777,7 +778,7 @@ stargazer(
   covariate.labels = c("Segregation - Start of year 3", "Mentoring program", "Diverse hostels", "Diverse course sections", "Integration courses", "Proportion of reservation students", "Proportion of reservation faculty", "Constant"),
   keep = c("z_seg", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   type = "html",
-  out = "testing.html",
+  out = "testing2.html",
   omit.stat = c("all"),
   notes = c(
     "All OLS models control for <i>proportion of seats officially reserved for students and faculty, student gender, student socioeconomic status,</i> and <i>student age</i>.",
@@ -900,7 +901,7 @@ stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
   dep.var.caption  = "Segregation at <i>non-elite</i> colleges - End of year 2 (by student reservation status)",
   dep.var.labels.include  = F,
@@ -908,7 +909,7 @@ stargazer(
   covariate.labels = c("Segregation - Start of year 1", "Mentoring program", "Diverse hostels", "Diverse course sections", "Integration courses", "Proportion of reservation students", "Proportion of reservation faculty", "Constant"),
   keep = c("z_seg", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   type = "html",
-  out = "testing.html",
+  out = "testing3.html",
   omit.stat = c("all"),
   notes = c(
     "All OLS models control for <i>proportion of seats officially reserved for students and faculty, student gender, student socioeconomic status,</i> and <i>student age</i>.",
@@ -1032,7 +1033,7 @@ stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
   dep.var.caption  = "Segregation at <i>non-elite</i> colleges - End of year 4 (by student reservation status)",
   dep.var.labels.include  = F,
@@ -1040,7 +1041,7 @@ stargazer(
   covariate.labels = c("Segregation - Start of year 3", "Mentoring program", "Diverse hostels", "Diverse course sections", "Integration courses", "Proportion of reservation students", "Proportion of reservation faculty", "Constant"),
   keep = c("z_seg", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   type = "html",
-  out = "testing.html",
+  out = "testing3.html",
   omit.stat = c("all"),
   notes = c(
     "All OLS models control for <i>proportion of seats officially reserved for students and faculty, student gender, student socioeconomic status,</i> and <i>student age</i>.",
@@ -1165,7 +1166,7 @@ stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
   dep.var.caption  = "Number of studymates - End of year 2 (by student reservation status)",
   dep.var.labels.include  = F,
@@ -1174,7 +1175,7 @@ stargazer(
   keep = c("z_n_stud", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   omit.stat = c("all"),
   type = "html",
-  out = "testing.html",
+  out = "testing1.html",
   notes = c(
     "All OLS models control for <i>proportion of seats officially reserved for students and faculty, student gender, student socioeconomic status,</i> and <i>student age</i>.",
     "Instruments for IV models: Proportion of seats officially reserved for students and faculty. The model also controls for <i>student gender, student socioeconomic status,</i> and <i>student age</i>."
@@ -1296,7 +1297,7 @@ stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
   dep.var.caption  = "Number of studymates - End of year 4 (by student reservation status)",
   dep.var.labels.include  = F,
@@ -1305,7 +1306,7 @@ stargazer(
   keep = c("z_n_stud", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   omit.stat = c("all"),
   type = "html",
-  out = "testing.html",
+  out = "testing2.html",
   notes = c(
     "All OLS models control for <i>proportion of seats officially reserved for students and faculty, student gender, student socioeconomic status,</i> and <i>student age</i>.",
     "Instruments for IV models: Proportion of seats officially reserved for students and faculty. The model also controls for <i>student gender, student socioeconomic status,</i> and <i>student age</i>."
@@ -1693,16 +1694,16 @@ stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
-  dep.var.caption  = "Reciprocity - End of year 2 (by student reservation status)",
+  dep.var.caption  = "Reciprocity - End of year 2 (by college status)",
   dep.var.labels.include  = F,
   column.labels   = c("Elite", "Non-elite", "Elite", "Non-elite", "Elite", "Non-elite", "Elite", "Non-elite", "Elite", "Non-elite", "Elite", "Non-elite", "Elite", "Non-elite"),
   covariate.labels = c("Reciprocity - Start of year 1", "Mentoring program", "Diverse hostels", "Diverse course sections", "Integration courses", "Proportion of reservation students", "Proportion of reservation faculty", "Constant"),
   keep = c("z_reciprocity", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   omit.stat = c("all"),
   type = "html",
-  out = "testing.html",
+  out = "testing1.html",
   notes = c(
     "All OLS models control for proportion of seats officially reserved for students and faculty.",
     "Instruments for IV models: Proportion of seats officially reserved for students and faculty."
@@ -1822,18 +1823,19 @@ rob_se <-
 
 stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
+  title = "Table 12",
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
-  dep.var.caption  = "Reciprocity - End of year 4 (by student reservation status)",
+  dep.var.caption  = "Reciprocity - End of year 4 (by college status)",
   dep.var.labels.include  = F,
   column.labels   = c("Elite", "Non-elite", "Elite", "Non-elite", "Elite", "Non-elite", "Elite", "Non-elite", "Elite", "Non-elite", "Elite", "Non-elite", "Elite", "Non-elite"),
   covariate.labels = c("Reciprocity - Start of year 3", "Mentoring program", "Diverse hostels", "Diverse course sections", "Integration courses", "Proportion of reservation students", "Proportion of reservation faculty", "Constant"),
   keep = c("z_reciprocity", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   omit.stat = c("all"),
   type = "html",
-  out = "testing.html",
+  out = "testing2.html",
   notes = c(
     "All OLS models control for proportion of seats officially reserved for students and faculty.",
     "Instruments for IV models: Proportion of seats officially reserved for students and faculty."
@@ -1955,9 +1957,10 @@ rob_se <-
 
 stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
+  title = "Table 13",
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
   dep.var.caption  = "Transitivity - End of year 2 (by student reservation status)",
   dep.var.labels.include  = F,
@@ -1966,7 +1969,7 @@ stargazer(
   keep = c("z_transitivity", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   omit.stat = c("all"),
   type = "html",
-  out = "testing.html",
+  out = "testing1.html",
   notes = c(
     "All OLS models control for proportion of seats officially reserved for students and faculty.",
     "Instruments for IV models: Proportion of seats officially reserved for students and faculty."
@@ -2086,9 +2089,10 @@ rob_se <-
 
 stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, iv1_r, iv1_nr, iv2_r, iv2_nr,
+  title = "Table 14",
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
   dep.var.caption  = "Transitivity - End of year 4 (by student reservation status)",
   dep.var.labels.include  = F,
@@ -2097,7 +2101,7 @@ stargazer(
   keep = c("z_transitivity", "stu_res_act", "fac_res_act", "ea_", "Constant"),
   omit.stat = c("all"),
   type = "html",
-  out = "testing.html",
+  out = "testing2.html",
   notes = c(
     "All OLS models control for proportion of seats officially reserved for students and faculty.",
     "Instruments for IV models: Proportion of seats officially reserved for students and faculty."
@@ -2129,19 +2133,19 @@ df <-
   
 lm1_r <-
   lm(
-    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_homophily + diff_n_studymate + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1)
   )
 
 lm1_nr <-
   lm(
-    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_homophily + diff_n_studymate + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 0)
   )
 
 lm1_r_e <-
   lm(
-    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_homophily + diff_n_studymate + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1, elite == 1)
   )
 
@@ -2153,13 +2157,13 @@ lm1_nr_e <-
 
 lm1_r_ne <-
   lm(
-    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_homophily + diff_n_studymate + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm1_nr_ne <-
   lm(
-    diff_seg_studymate ~ diff_n_studymate + diff_homophily + diff_reciprocity + diff_transitivity, 
+    diff_seg_studymate ~ diff_homophily + diff_n_studymate + diff_reciprocity + diff_transitivity, 
     data = df %>% filter(reservation == 0, elite == 0)
   )
 
@@ -2177,17 +2181,18 @@ rob_se <-
 
 stargazer(
   lm1_r, lm1_nr, lm1_r_e, lm1_nr_e, lm1_r_ne, lm1_nr_ne,
+  title = "Table 9: Gains in segregation controlling for student fixed effects",
   se = rob_se,
   header = F,
-  digits = 3,
+  digits = 2,
   model.numbers = F,
-  dep.var.caption  = "Change in Segregation",
+  dep.var.caption  = "Gains in Segregation",
   dep.var.labels.include  = F,
   column.labels   = c("Reservation", "Non-reservation", "Reservation elite", "Non-reservation elite", "Reservation non-elite", "Non-reservation non-elite"),
-  covariate.labels = c("Gains in studymates", "Gains in class homophily", "Gains in class reciprocity", "Gains in transitivity", "Constant"),
+  covariate.labels = c("Gains in class homophily", "Gains in studymates", "Gains in class reciprocity", "Gains in class transitivity", "Constant"),
   keep = c("diff_", "Constant"),
   type = "html",
-  out = "testing.html"
-#  omit.stat = c("all")
+  out = "testing3.html",
+  notes = "All OLS models control for student fixed effects."
 )
 ```
