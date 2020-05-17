@@ -5,6 +5,9 @@ old/
 *.Rds
 *.html
 *.tex
+*.docx
+*.pdf
+*.xlsx
 report/
 .Rproj.user
 .Rproj.user/

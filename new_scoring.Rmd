@@ -1,0 +1,78 @@
+---
+title: "Analysis for SN Paper 1 - New Scoring"
+author: "Saurabh Khanna"
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+library(haven)
+library(stargazer)
+library(AER)
+library(sandwich)
+library(lmtest)
+
+# Parameters
+data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
+baseline_file <- here::here("data/new_scoring/b_file.dta")
+endline_file <- here::here("data/new_scoring/e_file.dta")
+```
+
+
+Class info:
+
+```{r, message=F, warning=F}
+class_info <-
+  read_rds(data_file) %>% 
+  select(classid, stdid, reservation) %>% 
+  mutate(
+    reservation = dplyr::recode(reservation, "Non-reservation" = 0L, "Reservation" = 1L, .default = NA_integer_)
+  ) %>% 
+  drop_na() %>% 
+  count(classid, reservation) %>% 
+  pivot_wider(
+    names_from = reservation,
+    values_from = n,
+    names_prefix = "res_class_"
+  ) %>% 
+  mutate(
+    res_class_0 = if_else(is.na(res_class_0), 0L, res_class_0),
+    res_class_1 = if_else(is.na(res_class_1), 0L, res_class_1)
+  )
+```
+
+Student info:
+
+```{r, message=F, warning=F}
+read_dta(baseline_file) %>% 
+  drop_na(res_stdid, res_b_alter) %>% 
+  count(classid, stdid, res_stdid, res_b_alter) %>% 
+  pivot_wider(
+    names_from = res_b_alter,
+    values_from = n,
+    names_prefix = "res_stu_"
+  ) %>% 
+  mutate(
+    res_stu_0 = if_else(is.na(res_stu_0), 0L, res_stu_0),
+    res_stu_1 = if_else(is.na(res_stu_1), 0L, res_stu_1)
+  ) %>% 
+  inner_join(class_info, by = "classid") %>% 
+  mutate(
+    b_seg_score = if_else(
+      res_stdid == 0,
+      (res_stu_0 / res_stu_1) * ((res_class_1 - res_stu_1) / (res_class_0 - res_stu_0 - 1)),
+      (res_stu_1 / res_stu_0) * ((res_class_0 - res_stu_0) / (res_class_1 - res_stu_1 - 1))
+    ),
+    log = log(b_seg_score)
+  )
+
+
+```
