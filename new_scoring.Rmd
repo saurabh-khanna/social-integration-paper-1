@@ -52,7 +52,8 @@ class_info <-
 Baseline student scores:
 
 ```{r, message=F, warning=F}
-read_dta(baseline_file) %>% 
+b_newscores <- 
+  read_dta(baseline_file) %>% 
   filter(univtype == 1) %>% 
   drop_na(res_stdid, res_b_alter) %>% 
   count(classid, stdid, res_stdid, res_b_alter) %>% 
@@ -82,7 +83,8 @@ Endline student scores:
 
 
 ```{r, warning=F, message=F}
-read_dta(endline_file) %>% 
+e_newscores <- 
+  read_dta(endline_file) %>% 
   filter(univtype == 1) %>% 
   drop_na(res_stdid, res_e_alter) %>% 
   count(classid, stdid, res_stdid, res_e_alter) %>% 
@@ -108,4 +110,9 @@ read_dta(endline_file) %>%
   select(stdid, e_seg_new = seg_score)
 ```
 
+Merging new score:
+
+```{r}
+full_join(b_newscores, e_newscores, by = "stdid")
+```
 
