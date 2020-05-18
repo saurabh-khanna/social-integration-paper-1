@@ -49,10 +49,11 @@ class_info <-
   )
 ```
 
-Student info:
+Baseline student scores:
 
 ```{r, message=F, warning=F}
 read_dta(baseline_file) %>% 
+  filter(univtype == 1) %>% 
   drop_na(res_stdid, res_b_alter) %>% 
   count(classid, stdid, res_stdid, res_b_alter) %>% 
   pivot_wider(
@@ -64,15 +65,47 @@ read_dta(baseline_file) %>%
     res_stu_0 = if_else(is.na(res_stu_0), 0L, res_stu_0),
     res_stu_1 = if_else(is.na(res_stu_1), 0L, res_stu_1)
   ) %>% 
-  inner_join(class_info, by = "classid") %>% 
+  left_join(class_info, by = "classid") %>%
   mutate(
-    b_seg_score = if_else(
+    seg_score = if_else(
       res_stdid == 0,
-      (res_stu_0 / res_stu_1) * ((res_class_1 - res_stu_1) / (res_class_0 - res_stu_0 - 1)),
-      (res_stu_1 / res_stu_0) * ((res_class_0 - res_stu_0) / (res_class_1 - res_stu_1 - 1))
+      log((res_stu_0 / res_stu_1) * ((res_class_1 - res_stu_1) / (res_class_0 - res_stu_0 - 1))),
+      log((res_stu_1 / res_stu_0) * ((res_class_0 - res_stu_0) / (res_class_1 - res_stu_1 - 1)))
     ),
-    log = log(b_seg_score)
-  )
-
-
+    seg_score = if_else(seg_score == Inf, 5, seg_score),
+    seg_score = if_else(seg_score == -Inf, -5, seg_score)
+  ) %>% 
+  select(stdid, b_seg_new = seg_score)
 ```
+
+Endline student scores:
+
+
+```{r, warning=F, message=F}
+read_dta(endline_file) %>% 
+  filter(univtype == 1) %>% 
+  drop_na(res_stdid, res_e_alter) %>% 
+  count(classid, stdid, res_stdid, res_e_alter) %>% 
+  pivot_wider(
+    names_from = res_e_alter,
+    values_from = n,
+    names_prefix = "res_stu_"
+  ) %>% 
+  mutate(
+    res_stu_0 = if_else(is.na(res_stu_0), 0L, res_stu_0),
+    res_stu_1 = if_else(is.na(res_stu_1), 0L, res_stu_1)
+  ) %>% 
+  left_join(class_info, by = "classid") %>% 
+  mutate(
+    seg_score = if_else(
+      res_stdid == 0,
+      log((res_stu_0 / res_stu_1) * ((res_class_1 - res_stu_1) / (res_class_0 - res_stu_0 - 1))),
+      log((res_stu_1 / res_stu_0) * ((res_class_0 - res_stu_0) / (res_class_1 - res_stu_1 - 1)))
+    ),
+    seg_score = if_else(seg_score == Inf, 5, seg_score),
+    seg_score = if_else(seg_score == -Inf, -5, seg_score)
+  ) %>% 
+  select(stdid, e_seg_new = seg_score)
+```
+
+
