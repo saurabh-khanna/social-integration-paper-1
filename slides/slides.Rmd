@@ -1,0 +1,43 @@
+---
+title: "Diametric"
+subtitle: "⚔<br/>with xaringan"
+author: "Saurabh Khanna"
+institute: "Stanford University"
+date: "`r Sys.Date()`"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+class: inverse, center, middle
+
+# Problem
+
+---
+
+Knowledge diversity 
+
+--
+
+and 
+
+Knowledge relevance
+
+---
+
+class: inverse, center, middle
+
+# Objective
+
+
+---
+
+class: inverse, center, middle
+
+# Approach
+
+

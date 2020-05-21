@@ -7,7 +7,7 @@ output:
     toc: true
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -23,6 +23,7 @@ library(lmtest)
 # Parameters
 data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
 trends_file <- here::here("data/trends.csv")
+newscores_file <- here::here("data/new_scoring/newscores.Rds")
 fac_res_file <- here::here("data/fac_res_prop.csv")
 n_studymates_file <- here::here("data/n_studymates.csv")
 ```
@@ -35,8 +36,12 @@ Read main data file:
 df <-
   data_file %>%
   read_rds() %>% 
-  filter(stu_merge == 3) %>% 
+  #filter(stu_merge == 3) %>% 
   mutate_at(vars(contains("ea_seats_reser")), replace_na, replace = 0) %>% 
+  left_join(
+    read_rds(newscores_file),
+    by = "stdid"
+  ) %>% 
   left_join(
     read_csv(fac_res_file),
     by = "department_id"
@@ -51,10 +56,10 @@ df <-
     reservation = dplyr::recode(reservation, "Non-reservation" = 0L, "Reservation" = 1L, .default = NA_integer_),
     stu_res_official = (ea_seats_reserved_students_obc + ea_seats_reserved_students_sc + ea_seats_reserved_students_st) / 100,
     fac_res_official = (ea_seats_reserved_faculty_obc + ea_seats_reserved_faculty_sc + ea_seats_reserved_faculty_st) / 100,
-    z_seg_g1 = if_else(grade == 2, b_seg_studymate, NA_real_),
-    z_seg_g2 = if_else(grade == 2, e_seg_studymate, NA_real_),
-    z_seg_g3 = if_else(grade == 4, b_seg_studymate, NA_real_),
-    z_seg_g4 = if_else(grade == 4, e_seg_studymate, NA_real_),
+    z_seg_g1 = if_else(grade == 2, b_seg_new, NA_real_),
+    z_seg_g2 = if_else(grade == 2, e_seg_new, NA_real_),
+    z_seg_g3 = if_else(grade == 4, b_seg_new, NA_real_),
+    z_seg_g4 = if_else(grade == 4, e_seg_new, NA_real_),
     z_homophily_g1 = if_else(grade == 2, b_homophily, NA_real_),
     z_homophily_g2 = if_else(grade == 2, e_homophily, NA_real_),
     z_homophily_g3 = if_else(grade == 4, b_homophily, NA_real_),
@@ -82,19 +87,175 @@ df <-
     by = "department_id"
   ) %>% 
   mutate_at(
-    vars(starts_with(c("z_seg_g", "z_homophily", "z_reciprocity", "z_transitivity", "z_n_stud", "stu_res_", "fac_res_")), age),
+    vars(starts_with(c("z_homophily", "z_reciprocity", "z_transitivity", "z_n_stud", "stu_res_", "fac_res_")), age),
     ~ scale(.) %>% as.vector
   )
 
-df %>% 
-  select(starts_with(c("z_seg_g", "z_homophily", "z_reciprocity", "z_transitivity", "z_n_stud", "stu_res_", "fac_res_")), age) %>% 
-  summary()
+# df %>% 
+#   select(starts_with(c("z_seg_g", "z_homophily", "z_reciprocity", "z_transitivity", "z_n_stud", "stu_res_", "fac_res_")), age) %>% 
+#   summary()
 
 
 # Preparing classid level data for homophily/reciprocity/transitivity at elite/non-elite colleges
 df_e <- df %>% distinct(classid, .keep_all = TRUE) %>% filter(elite == 1)
 df_ne <- df %>% distinct(classid, .keep_all = TRUE) %>% filter(elite == 0)
 ```
+
+
+## Segregation levels and gains
+
+```{r, fig.retina = 2}
+df2 <-
+  df %>% 
+  select(starts_with(c("b_seg_new", "e_seg_new")), elite, reservation) %>%
+  drop_na(reservation) %>%
+  mutate(
+    elite = factor(elite, labels = c("Non-elite", "Elite"))
+  ) %>%
+  pivot_longer(
+    cols = contains("seg_"),
+    names_to = "survey",
+    values_to = "seg_studymate",
+    values_drop_na = TRUE
+  ) %>% 
+  mutate(
+    survey = dplyr::recode(
+      survey,
+      `b_seg_new` = "Beginning of Year 1/Year 3",
+      `e_seg_new` = "End of Year 2/Year 4",
+      .default = NA_character_
+    )
+  ) %>% 
+  group_by(elite, survey, reservation) %>% 
+  summarize(
+    mean = median(seg_studymate, na.rm = T)
+  )
+
+df %>%
+  select(starts_with(c("b_seg_new", "e_seg_new")), elite, reservation) %>%
+  drop_na(reservation) %>%
+  mutate(
+    elite = factor(elite, labels = c("Non-elite", "Elite"))
+  ) %>%
+  pivot_longer(
+    cols = contains("seg_"),
+    names_to = "survey",
+    values_to = "seg_studymate",
+    values_drop_na = TRUE
+  ) %>%
+  mutate(
+    survey = dplyr::recode(
+      survey,
+      `b_seg_new` = "Beginning of Year 1/Year 3",
+      `e_seg_new` = "End of Year 2/Year 4",
+      .default = NA_character_
+    )
+  ) %>%
+  ggplot(aes(seg_studymate, stat(density), fill = factor(reservation))) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = df2, aes(xintercept = mean, color = factor(reservation)), linetype = "dashed", size = 1, show.legend = F) +
+  theme_bw() +
+  facet_grid(vars(elite), vars(survey)) +
+  labs(
+    x = "Segregation",
+    y = "Density",
+    fill = "Reservation Status"
+  )
+```
+
+
+### Levels
+```{r, message = F, warning = F, fig.retina=2}
+# by res
+df %>% 
+  select(starts_with("z_seg_g"), reservation) %>%
+  drop_na(reservation) %>% 
+  group_by(reservation) %>%
+  summarize_all(mean, na.rm = T)
+
+# by res, elite
+df %>% 
+  select(starts_with("z_seg_g"), reservation, elite) %>%
+  drop_na(reservation, elite) %>% 
+  group_by(reservation, elite) %>%
+  summarize_all(mean, na.rm = T) %>%
+  ungroup() %>% 
+  pivot_longer(cols = starts_with("z"), names_to = "year", values_to = "seg") %>% 
+  mutate(
+    year = year %>% parse_number() %>% as.integer()
+    ) %>% 
+  ggplot(aes(year, seg, group = reservation, fill = factor(reservation))) +
+  geom_col(position = "dodge") +
+  facet_wrap(vars(elite), labeller = labeller(elite = c(`0` = "Non-elite", `1` = "Elite"))) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  labs(
+    x = "Year",
+    y = "Segregation (log odds)",
+    fill = "Reservation status"
+  )
+```
+
+
+### Gains
+
+```{r, message = F, warning = F}
+# by res
+df %>% 
+  select(stdid, contains("seg_new"), reservation, grade) %>%
+  drop_na(reservation) %>% 
+  pivot_longer(cols = contains("seg"), names_to = "endline", values_to = "seg") %>% 
+  mutate(endline = dplyr::recode(endline, "b_seg_new" = "0", "e_seg_new" = "1") %>% as.integer()) %>%
+  filter(grade == 4, reservation == 1) %>% 
+  lm(seg ~ endline, data = .) %>% 
+  summary()
+
+# by res, elite
+df %>% 
+  select(stdid, contains("seg_new"), reservation, elite, grade) %>%
+  drop_na(reservation) %>% 
+  pivot_longer(cols = contains("seg"), names_to = "endline", values_to = "seg") %>% 
+  mutate(endline = dplyr::recode(endline, "b_seg_new" = "0", "e_seg_new" = "1") %>% as.integer()) %>%
+  filter(reservation == 1, grade == 4, elite == 0) %>% 
+  lm(seg ~ endline, data = .) %>% 
+  summary()
+```
+
+
+
+### Nonres - Res
+
+```{r, message = F, warning = F}
+# by res
+df %>% 
+  select(stdid, contains("z_seg_g"), reservation) %>%
+  drop_na(reservation) %>% 
+  lm(z_seg_g4 ~ reservation, data = .) %>% 
+  summary()
+
+# by res, elite
+df %>% 
+  select(stdid, contains("z_seg_g"), reservation, elite) %>%
+  drop_na(reservation) %>% 
+  filter(elite == 0) %>% 
+  lm(z_seg_g4 ~ reservation, data = .) %>% 
+  summary()
+```
+
+
+## Correlating segregation with % reservation
+
+```{r, message = F, warning = F, fig.retina=2}
+df %>% 
+  select(stu_res_actual, starts_with("z_seg_g")) %>% 
+  pivot_longer(cols = -stu_res_actual, names_to = "year", values_to = "z_seg") %>% 
+  mutate(year = year %>% parse_number()) %>%
+  ggplot() +
+  geom_smooth(aes(stu_res_actual, z_seg, color = factor(year)), method = "loess") +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1")
+```
+
 
 Checking IV stage-1 assumption:
 
@@ -120,7 +281,7 @@ df %>%
 ## Integration v Policy
 ### Y1 to Y2
 
-```{r, warning=FALSE, results="hide"}
+```{r, results="hide"}
 lm1_r <- 
   lm(
     z_seg_g2 ~ z_seg_g1 + female + age + ses + stu_res_official + fac_res_official, 
@@ -210,7 +371,7 @@ iv2_nr <-
   )
 
 
-rob_se <- 
+rob_se <-
   list(
     sqrt(diag(vcovHC(iv1_r, type = "HC1"))),
     sqrt(diag(vcovHC(iv1_nr, type = "HC1"))),
@@ -1978,7 +2139,7 @@ df <-
     diff_homophily = e_homophily - b_homophily,
     diff_reciprocity = e_reciprocity - b_reciprocity,
     diff_transitivity = e_transitivity - b_transitivity,
-    diff_seg_studymate = e_seg_studymate - b_seg_studymate,
+    diff_seg_studymate = e_seg_new - b_seg_new,
     diff_n_studymate = e_n_studymates - b_n_studymates,
     diff_ct = e_ct_score_perc - b_ct_score_perc,
     diff_ql = e_ql_score_perc - b_ql_score_perc,
