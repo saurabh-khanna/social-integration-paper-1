@@ -1,6 +1,6 @@
 ---
-title: "Diametric"
-subtitle: "⚔<br/>with xaringan"
+title: "Segregation and Affirmative Action in college"
+#subtitle: "⚔<br/>with xaringan"
 author: "Saurabh Khanna"
 institute: "Stanford University"
 date: "`r Sys.Date()`"
@@ -15,29 +15,16 @@ output:
 
 class: inverse, center, middle
 
-# Problem
-
----
-
-Knowledge diversity 
-
---
-
-and 
-
-Knowledge relevance
-
----
-
-class: inverse, center, middle
-
-# Objective
-
-
----
-
-class: inverse, center, middle
-
 # Approach
 
+??? 
 
+
+let us first talk about our approach
+
+---
+
+class: center, middle
+
+$$Segregation_{res} = log \left[ \frac{F_{res}}{F_{non-res}}\times\frac{Not F_{non-res}}{Not F_{res}} \right]$$
+$$Segregation_{non-res} = log \left[ \frac{F_{non-res}}{F_{res}}\times\frac{Not F_{res}}{Not F_{non-res}} \right]$$
