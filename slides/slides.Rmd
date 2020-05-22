@@ -2,8 +2,8 @@
 title: "Segregation and Affirmative Action in college"
 #subtitle: "⚔<br/>with xaringan"
 author: "Saurabh Khanna"
-institute: "Stanford University"
-date: "`r Sys.Date()`"
+#institute: "Stanford University"
+#date: "`r Sys.Date()`"
 output:
   xaringan::moon_reader:
     lib_dir: libs
@@ -11,20 +11,99 @@ output:
       highlightStyle: github
       highlightLines: true
       countIncrementalSlides: false
+
 ---
 
 class: inverse, center, middle
 
-# Approach
-
-??? 
-
-
-let us first talk about our approach
+# Data and Methods
 
 ---
 
-class: center, middle
+class: middle
 
-$$Segregation_{res} = log \left[ \frac{F_{res}}{F_{non-res}}\times\frac{Not F_{non-res}}{Not F_{res}} \right]$$
-$$Segregation_{non-res} = log \left[ \frac{F_{non-res}}{F_{res}}\times\frac{Not F_{res}}{Not F_{non-res}} \right]$$
+# Data
+
+* 50 randomly sampled colleges
+ + 200 classrooms (4 per college)
+      - ~20000 students (averaging 100 per classroom)
+
+
+* Network data for each classroom
+  + Students nominate upto 10 friends
+  + Panel data for 2 cohorts
+        - $t_1$: Surveyed students in year 1 and year 3 of college
+        - $t_2$: Surveyed _same students_ (now in year 2 and year 4 of college)
+
+        
+* Affirmative Action Policy
+  + Seats reserved for students historically disadvantaged backgrounds
+  + _Reservation students_: Those who gain admission based on this policy
+  + _Non-Reservation students_: Those who don't
+
+
+---
+
+class: middle
+
+# Segregation Score
+
+```{r table, echo=FALSE, message=FALSE, warnings=FALSE}
+library(tidyverse)
+tribble(
+    ~"", ~"Friend (f)", ~"Not friend (f')",   
+    "Reservation (r)",    "4",     "36",
+    "Non-reservation (nr)",    "6",     "54"
+) %>%
+knitr::kable(format = "html")
+```
+<br/>
+
+Natural log of the odds that a student will nominate a friend in their own category, relative to the odds that they will nominate someone of a different category
+
+$$segregation_{r} = log \left[\frac{f_{r}}{f_{nr}}\times\frac{f'_{nr}}{f'_{r}} \right]$$
+$$segregation_{nr} = log \left[\frac{f_{nr}}{f_{r}}\times\frac{f'_{r}}{f'_{nr}} \right]$$
+
+<br/>
+$+$ score $\to$ More same category friendships <br/>
+$-$ score $\to$ More different category friendships <br/>
+0 $\to$ Optimum same/different category friendships (Preference = Opportunity)
+
+---
+
+# Model
+
+For student $i$ at time points $t_1$ and $t_2$:
+<br/><br/>
+
+$$seg_{i,t_2} = \color{red}{policy_i} + \color{blue}{seg_{i,t_1} + gender_i + SES_i + rural_i + age_i} + \epsilon_i$$
+
+<br/><br/>
+$\color{red}{policy_i}$ can be<sup>1</sup>:
+1. Proportion of seats reserved for _students_ from disadvantaged backgrounds
+2. Proportion of seats reserved for _faculty_ from disadvantaged backgrounds
+3. Students from different backgrounds being placed together in _same dormitories_ by design
+4. Students from different backgrounds being placed together in _same teaching sections_ by design
+5. Student taught courses and seminars to encourage integration
+6. Mentoring programs for students
+
+.footnote_tiny[[1] 1-2 continuous, 3-6 categorical]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
