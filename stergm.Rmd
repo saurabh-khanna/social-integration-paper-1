@@ -1,0 +1,90 @@
+---
+title: "Analysis for SN Paper 1 - STERGMs"
+author: "Saurabh Khanna"
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+library(igraph)
+library(ggraph)
+library(tidygraph)
+library(haven)
+library(stargazer)
+library(statnet)
+library(intergraph)
+
+# Parameters
+baseline_network_file <- here::here("data/baseline_network.dta")
+endline_network_file <- here::here("data/endline_network.dta")
+stu_admin_all_file <- here::here("data/stu_admin_all_latest.dta")
+
+#===============================================================================
+```
+
+
+## Creating networks for each classroom
+
+```{r}
+classids <- read_stata(endline_network_file) %>% select(classid) %>% arrange(classid) %>% distinct() %>% unlist()
+
+b_netlist <- list()
+e_netlist <- list()
+
+for (class in classids) {
+  print(str_c("Now at class: ", class))
+  
+  b_nodes <-
+    read_stata(baseline_network_file) %>%
+    filter(classid == class) %>%
+    select(-b_node2) %>%
+    distinct()
+
+  b_edges <-
+    read_stata(baseline_network_file) %>%
+    filter(classid == class) %>%
+    select(b_node1, b_node2) %>%
+    filter(b_node2 != "")
+
+  e_nodes <-
+    read_stata(endline_network_file) %>%
+    filter(classid == class) %>%
+    select(-e_node2) %>%
+    distinct()
+
+  e_edges <-
+    read_stata(endline_network_file) %>%
+    filter(classid == class) %>%
+    select(e_node1, e_node2) %>%
+    filter(e_node2 != "")
+  
+  b_netlist[[class]] <-
+    graph_from_data_frame(b_edges, b_nodes, directed = TRUE) %>%
+    asNetwork()
+  
+  e_netlist[[class]] <-
+    graph_from_data_frame(e_edges, e_nodes, directed = TRUE) %>%
+    asNetwork()
+}
+```
+
+## Running STERGMs
+
+```{r}
+stergm(
+  list(b_netlist[["IR001CS1"]], e_netlist[["IR001CS1"]]),
+  formation = ~ edges + mutual + cyclicalties + transitiveties,
+  dissolution = ~edges + mutual + cyclicalties + transitiveties,
+  estimate = "CMLE",
+  times = 1:2
+)
+```
+
