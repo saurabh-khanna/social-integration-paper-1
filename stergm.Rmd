@@ -46,6 +46,9 @@ for (class in classids) {
     read_stata(baseline_network_file) %>%
     filter(classid == class) %>%
     select(-b_node2) %>%
+    mutate(
+      reservation = recode(reservation, `Non-reservation` = "0", `Reservation` = "1", .default = NA_character_) %>% as.integer()
+    ) %>% 
     distinct()
 
   b_edges <-
@@ -58,6 +61,9 @@ for (class in classids) {
     read_stata(endline_network_file) %>%
     filter(classid == class) %>%
     select(-e_node2) %>%
+    mutate(
+      reservation = recode(reservation, `Non-reservation` = "0", `Reservation` = "1", .default = NA_character_) %>% as.integer()
+    ) %>%
     distinct()
 
   e_edges <-
@@ -79,12 +85,37 @@ for (class in classids) {
 ## Running STERGMs
 
 ```{r}
-stergm(
-  list(b_netlist[["IR001CS1"]], e_netlist[["IR001CS1"]]),
-  formation = ~ edges + mutual + cyclicalties + transitiveties,
-  dissolution = ~edges + mutual + cyclicalties + transitiveties,
-  estimate = "CMLE",
-  times = 1:2
-)
+results <- tibble()
+
+for (class in classids) {
+  print(str_c("Now at class: ", class))
+  
+  model <- 
+    stergm(
+      list(b_netlist[[class]], e_netlist[[class]]),
+      formation = 
+        ~ edges + nodefactor("reservation") + nodematch("reservation") + mutual + gwesp(decay=.4, fixed=T),
+      dissolution = 
+        ~ edges + nodefactor("reservation") + nodematch("reservation") + mutual + gwesp(decay=.4, fixed=T),
+      estimate = "CMLE",
+      times = 1:2
+    ) %>% 
+    summary()
+  
+  results <-
+    bind_rows(
+      results,
+      bind_cols(
+        c(class, class, class, class, class) %>% as_tibble() %>% select(classid = value),
+        tibble(name = c("edges", "nodefactor_res", "nodematch_res", "mutual", "gwesp")),
+        model[["formation"]][["coefs"]][["Estimate"]] %>% as_tibble() %>% select(form_coef = value),
+        model[["formation"]][["coefs"]][["Std. Error"]] %>% as_tibble() %>% select(form_se = value), 
+        model[["dissolution"]][["coefs"]][["Estimate"]] %>% as_tibble() %>% select(diss_coef = value),
+        model[["dissolution"]][["coefs"]][["Std. Error"]] %>% as_tibble() %>% select(diss_se = value)
+      )
+    )
+}
+
+results
 ```
 
