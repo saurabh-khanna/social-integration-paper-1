@@ -89,13 +89,44 @@ $\color{red}{policy_i}$ can be<sup>1</sup>:
 
 .footnote_tiny[[1] 1-2 continuous, 3-6 categorical]
 
+---
+
+# STERGM
+
+For each of the 200 classrooms, I run:
+
+```{r, eval = F}
+stergm(
+  list(network_t1, network_t2),
+  formation = 
+    ~ edges + nodefactor("reservation") + nodematch("reservation", diff = TRUE) + mutual + cyclicalties  + transitiveties,
+  dissolution = 
+    ~ edges + nodefactor("reservation") + nodematch("reservation", diff = TRUE) + mutual + cyclicalties  + transitiveties,
+  estimate = "CMLE",
+  times = 1:2,
+  control = control.stergm(seed = 100, MLE.MCMC.burnin=50000, CMLE.MCMC.interval=2000)
+)
+```
 
 
+* Model does not converge for 6 classrooms
+* Degenerate results for 88 classrooms
 
+---
 
+# Meta-analysis
 
+Extracting model coefficients and standard errors
 
+Synthesizing effect sizes using a Random effects model
 
+* Reciprocal and Transitive ties are significant in tie formation and tie persistence
+* Cyclical ties have significantly lower changes of formation
+* Reservation students are less likely to form new ties (unstable)
+
+<br/><br/>
+#### Next: 
+Meta-regression using level 2 covariates (like classroom/departmental policies)
 
 
 
