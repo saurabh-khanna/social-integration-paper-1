@@ -22,7 +22,7 @@ class: middle
 
 2. Do these impacts differ for advantaged versus disadvantaged students?
 
-3. Do these impacts differ at elite and non-elite institutions?
+3. Do these impacts differ at elite versus non-elite institutions?
 
 
 ---
@@ -147,8 +147,10 @@ stergm(
 ```
 
 
-* No convergence for 35 classrooms
-* Degenerate results for 43 classrooms
+<br/>
+No convergence for 35 classrooms
+
+Degenerate results for 43 classrooms
 
 ---
 
@@ -158,10 +160,15 @@ Extracting model coefficients and standard errors
 
 Synthesizing effect sizes using a Random effects model
 
-Meta-regression using level 2 covariates (like classroom/departmental policies)
+Meta-regression using level 2 covariates like<sup>1</sup>:
+1. Proportion of seats taken by _students_ from disadvantaged backgrounds
+2. Proportion of seats taken by _faculty_ from disadvantaged backgrounds
+3. Random assignment of students to dormitories
+4. Random assignment of students to teaching sections
+5. Student taught courses and seminars to encourage integration
+6. Mentoring programs for students
 
-
-
+.footnote_tiny[[1] 1-4 implicit, 5-6 explicit]
 
 ---
 
@@ -171,7 +178,7 @@ Meta-regression using level 2 covariates (like classroom/departmental policies)
 * Homophilous connections based on affirmative action status 48% likely to form and persist
 * Homophilous connections based on gender 43% likely to form and 45% likely to persist
 * Reciprocal relations 78% likely to form and 83% likely to persist
-* Clustered relations 63% likely to form and 65% liekley to persist
+* Clustered relations 63% likely to form and 65% likely to persist
 
 ### Level 2
 * Signs match regression model results (implicit policies reducing affirmative action based homophily), but not significant
@@ -185,19 +192,19 @@ Meta-regression using level 2 covariates (like classroom/departmental policies)
 Absenteeism and non-response across 2 time points
 
 <br/>
-Existing approaches to impute missing network data
+Existing approaches
 * Simple imputation (biased for sparse networks)
 * Multiple imputation based on ERGM/SAOM (prediction $\approx$ imputation)
 
 <br/>
-Testing a new idea (`imputenet`)
+Testing another approach
 * Collaborative filtering approaches on network adjacency matrix
 
 ---
 
 class: middle
 
-Thank you!
+Thank You!
 
 <br/><br/><br/>
 
