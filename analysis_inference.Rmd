@@ -294,8 +294,14 @@ df %>%
 df %>% 
   lm(fac_res_actual ~  z_seg_g3 + female + age + ses + fac_res_official + reservation + elite, data = .) %>%
   linearHypothesis(c("fac_res_official = 0"), vcov = vcovHC, type = "HC1")
+```
 
-df %>% select(contains("english"))
+
+```{r}
+# controls for stergm meta-analysis
+# df %>% 
+#   select(classid, stu_res_actual, fac_res_actual, elite, hostel = ea_polic_integration_students4, section = ea_polic_integration_students5, seminars = ea_polic_integration_students6, mentors = ea_polic_integration_students3) %>% distinct(classid, .keep_all = T) %>% 
+#   write_rds("controls.Rds")
 ```
 
 
@@ -543,18 +549,6 @@ stargazer(
 ### Non-elite (Y1 to Y2)
 
 ```{r, warning=FALSE, results="hide"}
-lm1_r <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official, 
-    data = df %>% filter(reservation == 1, elite == 0)
-  )
-
-lm1_nr <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official, 
-    data = df %>% filter(reservation == 0, elite == 0)
-  )
-
 lm2_r <- 
   lm(
     z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
@@ -675,18 +669,6 @@ stargazer(
 ### Y3 to Y4
 
 ```{r, warning=FALSE, results="hide"}
-lm1_r <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official, 
-    data = df %>% filter(reservation == 1)
-  )
-
-lm1_nr <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official, 
-    data = df %>% filter(reservation == 0)
-  )
-
 lm2_r <- 
   lm(
     z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
@@ -807,18 +789,6 @@ stargazer(
 ### Elite (Y3 to Y4)
 
 ```{r, warning=FALSE, results="hide"}
-lm1_r <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official, 
-    data = df %>% filter(reservation == 1, elite == 1)
-  )
-
-lm1_nr <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official, 
-    data = df %>% filter(reservation == 0, elite == 1)
-  )
-
 lm2_r <- 
   lm(
     z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 

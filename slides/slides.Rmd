@@ -1,5 +1,5 @@
 ---
-title: "Segregation and Affirmative Action in college"
+title: "Segregation and Affirmative Action in College"
 #subtitle: "⚔<br/>with xaringan"
 author: "Saurabh Khanna"
 #institute: "Stanford University"
@@ -14,9 +14,22 @@ output:
 
 ---
 
+class: middle
+
+# Research Questions
+
+1. How do institutional policies affect segregation based on affirmative action quotas?
+
+2. Do these impacts differ for advantaged versus disadvantaged students?
+
+3. Do these impacts differ at elite and non-elite institutions?
+
+
+---
+
 class: inverse, center, middle
 
-# Data and Methods
+# Data
 
 ---
 
@@ -31,16 +44,21 @@ class: middle
 
 * Network data for each classroom
   + Students nominate upto 10 friends
-  + Panel data for 2 cohorts
-        - $t_1$: Surveyed students in year 1 and year 3 of college
-        - $t_2$: Surveyed _same students_ (now in year 2 and year 4 of college)
+  + Longitudinal data - 2 time points
 
         
 * Affirmative Action Policy
-  + Seats reserved for students historically disadvantaged backgrounds
-  + _Reservation students_: Those who gain admission based on this policy
-  + _Non-Reservation students_: Those who don't
+  + Quotas _reserved_ for students from historically disadvantaged backgrounds
+  + __Reservation students__: Those who gain admission based on this quota
+  + __Non-Reservation students__: Those who don't
 
+
+---
+
+class: inverse, center, middle
+
+# Method 1
+### Regression on Segregation Scores
 
 ---
 
@@ -48,12 +66,12 @@ class: middle
 
 # Segregation Score
 
-```{r table, echo=FALSE, message=FALSE, warnings=FALSE}
+```{r table1, echo=FALSE, message=FALSE, warnings=FALSE}
 library(tidyverse)
 tribble(
     ~"", ~"Friend (f)", ~"Not friend (f')",   
-    "Reservation (r)",    "4",     "36",
-    "Non-reservation (nr)",    "6",     "54"
+    "Reservation (r)",    "A",     "C",
+    "Non-reservation (nr)",    "B",     "D"
 ) %>%
 knitr::kable(format = "html")
 ```
@@ -61,37 +79,57 @@ knitr::kable(format = "html")
 
 Natural log of the odds that a student will nominate a friend in their own category, relative to the odds that they will nominate someone of a different category
 
-$$segregation_{r} = log \left[\frac{f_{r}}{f_{nr}}\times\frac{f'_{nr}}{f'_{r}} \right]$$
-$$segregation_{nr} = log \left[\frac{f_{nr}}{f_{r}}\times\frac{f'_{r}}{f'_{nr}} \right]$$
+$$segregation_{r} = log \left[\frac{f_{r}}{f_{nr}}\times\frac{f'_{nr}}{f'_{r}} \right] = log \left(\frac{AD}{BC} \right)$$
+$$segregation_{nr} = log \left[\frac{f_{nr}}{f_{r}}\times\frac{f'_{r}}{f'_{nr}} \right] = log \left(\frac{BC}{AD} \right)$$
 
 <br/>
-$+$ score $\to$ More same category friendships <br/>
-$-$ score $\to$ More different category friendships <br/>
-0 $\to$ Optimum same/different category friendships (Preference = Opportunity)
+$+$ score $\to$ More within category friendships <br/>
+$-$ score $\to$ More across category friendships <br/>
+0 $\to$ Optimum within/across category friendships (Preference = Opportunity)
 
 ---
 
 # Model
 
-For student $i$ at time points $t_1$ and $t_2$:
+For a reservation/non-reservation student $i$ at time points $t_1$ and $t_2$:
 <br/><br/>
 
-$$seg_{i,t_2} = \color{red}{policy_i} + \color{blue}{seg_{i,t_1} + gender_i + SES_i + rural_i + age_i} + \epsilon_i$$
+$$seg_{i,t_2} = \color{red}{policy_i} + \color{blue}{seg_{i,t_1} + gender_i + SES_i + rural_i + gpa_i + parented_i} + \epsilon_i$$
 
 <br/><br/>
 $\color{red}{policy_i}$ can be<sup>1</sup>:
-1. Proportion of seats reserved for _students_ from disadvantaged backgrounds
-2. Proportion of seats reserved for _faculty_ from disadvantaged backgrounds
-3. Students from different backgrounds being placed together in _same dormitories_ by design
-4. Students from different backgrounds being placed together in _same teaching sections_ by design
+1. Proportion of seats taken by _students_ from disadvantaged backgrounds
+2. Proportion of seats taken by _faculty_ from disadvantaged backgrounds
+3. Random assignment of students to dormitories
+4. Random assignment of students to teaching sections
 5. Student taught courses and seminars to encourage integration
 6. Mentoring programs for students
 
-.footnote_tiny[[1] 1-2 continuous, 3-6 categorical]
+.footnote_tiny[[1] 1-4 implicit, 5-6 explicit]
 
 ---
 
-# STERGM
+# Findings
+
+* Non-reservation students more segregated at all colleges
+
+* Overall segregation sustains sustains more over time at elite colleges
+
+* _Implicit_ institutional policies significantly reduce segregation
+  * Stronger effects at elite colleges
+
+* _Explicit_ policies for reducing segregation have no effect 
+
+---
+
+class: inverse, center, middle
+
+# Method 2
+### STERGM
+
+---
+
+# Model - Level 1
 
 For each of the 200 classrooms, I run:
 
@@ -99,9 +137,9 @@ For each of the 200 classrooms, I run:
 stergm(
   list(network_t1, network_t2),
   formation = 
-    ~ edges + nodefactor("reservation") + nodematch("reservation", diff = TRUE) + mutual + cyclicalties  + transitiveties,
+    ~ edges + nodefactor("reservation") + nodematch("reservation") + nodefactor("female") + nodematch("female") + nodefactor("ses") + nodematch("ses") + nodefactor("area") + nodematch("area") + nodecov("score") + absdiff("score") + mutual + gwesp(0.25),
   dissolution = 
-    ~ edges + nodefactor("reservation") + nodematch("reservation", diff = TRUE) + mutual + cyclicalties  + transitiveties,
+    ~ edges + nodefactor("reservation") + nodematch("reservation") + nodefactor("female") + nodematch("female") + nodefactor("ses") + nodematch("ses") + nodefactor("area") + nodematch("area") + nodecov("score") + absdiff("score") + mutual + gwesp(0.25),
   estimate = "CMLE",
   times = 1:2,
   control = control.stergm(seed = 100, MLE.MCMC.burnin=50000, CMLE.MCMC.interval=2000)
@@ -109,27 +147,66 @@ stergm(
 ```
 
 
-* Model does not converge for 6 classrooms
-* Degenerate results for 88 classrooms
+* No convergence for 35 classrooms
+* Degenerate results for 43 classrooms
 
 ---
 
-# Meta-analysis
+# Model - Level 2
 
 Extracting model coefficients and standard errors
 
 Synthesizing effect sizes using a Random effects model
 
-* Reciprocal and Transitive ties are significant in tie formation and tie persistence
-* Cyclical ties have significantly lower changes of formation
-* Reservation students are less likely to form new ties (unstable)
-
-<br/><br/>
-#### Next: 
 Meta-regression using level 2 covariates (like classroom/departmental policies)
 
 
 
+
+---
+
+# Findings
+
+### Level 1
+* Homophilous connections based on affirmative action status 48% likely to form and persist
+* Homophilous connections based on gender 43% likely to form and 45% likely to persist
+* Reciprocal relations 78% likely to form and 83% likely to persist
+* Clustered relations 63% likely to form and 65% liekley to persist
+
+### Level 2
+* Signs match regression model results (implicit policies reducing affirmative action based homophily), but not significant
+
+
+---
+
+# Missing Network Data
+
+
+Absenteeism and non-response across 2 time points
+
+<br/>
+Existing approaches to impute missing network data
+* Simple imputation (biased for sparse networks)
+* Multiple imputation based on ERGM/SAOM (prediction $\approx$ imputation)
+
+<br/>
+Testing a new idea (`imputenet`)
+* Collaborative filtering approaches on network adjacency matrix
+
+---
+
+class: middle
+
+Thank you!
+
+<br/><br/><br/>
+
+Code here: https://github.com/saurabh-khanna
+
+Help with `imputenet`:
+```{r, eval=FALSE, message=FALSE, warnings=FALSE}
+devtools::install_github("saurabh-khanna/imputenet")
+```
 
 
 
