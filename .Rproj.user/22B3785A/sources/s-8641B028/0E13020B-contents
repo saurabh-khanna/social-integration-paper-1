@@ -1,0 +1,226 @@
+---
+title: "Segregation and Affirmative Action in College"
+#subtitle: "⚔<br/>with xaringan"
+author: "Saurabh Khanna"
+#institute: "Stanford University"
+#date: "`r Sys.Date()`"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+
+---
+
+class: middle
+
+# Research Questions
+
+1. How do institutional policies affect segregation based on affirmative action quotas?
+
+2. Do these effects differ for advantaged versus disadvantaged students?
+
+3. Do these effects differ at elite versus non-elite institutions?
+
+
+---
+
+class: inverse, center, middle
+
+# Data
+
+---
+
+class: middle
+
+# Data
+
+* 50 randomly sampled colleges in India
+ + 200 classrooms (4 per college)
+      - ~20000 students (averaging 100 per classroom)
+
+
+* Network data for each classroom
+  + Students nominate upto 10 friends
+  + Longitudinal data - 2 time points
+
+        
+* Affirmative Action Policy
+  + Quotas _reserved_ for students from historically disadvantaged backgrounds
+  + __Reservation students__: Those who gain admission based on these quotas
+  + __Non-Reservation students__: Those who don't
+
+
+---
+
+class: inverse, center, middle
+
+# Method 1
+### Regression on Segregation Scores
+
+---
+
+class: middle
+
+# Segregation Score
+
+```{r table1, echo=FALSE, message=FALSE, warnings=FALSE}
+library(tidyverse)
+tribble(
+    ~"", ~"Friend (f)", ~"Not friend (f')",   
+    "Reservation (r)",    "A",     "C",
+    "Non-reservation (nr)",    "B",     "D"
+) %>%
+knitr::kable(format = "html")
+```
+<br/>
+
+Natural log of the odds that a student will nominate a friend in their own category, relative to the odds that they will nominate someone in a different category
+
+$$segregation_{r} = log \left[\frac{f_{r}}{f_{nr}}\times\frac{f'_{nr}}{f'_{r}} \right] = log \left(\frac{AD}{BC} \right)$$
+$$segregation_{nr} = log \left[\frac{f_{nr}}{f_{r}}\times\frac{f'_{r}}{f'_{nr}} \right] = log \left(\frac{BC}{AD} \right)$$
+
+<br/>
+$+$ score $\to$ More within category friendships <br/>
+$-$ score $\to$ More across category friendships <br/>
+0 $\to$ Optimum within/across category friendships (Preference = Opportunity)
+
+---
+
+# Model
+
+For a reservation/non-reservation student $i$ at time points $t_1$ and $t_2$:
+<br/><br/>
+
+$$seg_{i,t_2} = \color{red}{policy_i} + \color{blue}{seg_{i,t_1} + gender_i + SES_i + rural_i + gpa_i + parented_i} + \epsilon_i$$
+
+<br/><br/>
+$\color{red}{policy_i}$ can be<sup>1</sup>:
+1. Proportion of seats taken by _students_ from disadvantaged backgrounds
+2. Proportion of seats taken by _faculty_ from disadvantaged backgrounds
+3. Random assignment of students to dormitories
+4. Random assignment of students to teaching sections
+5. Student taught courses and seminars to encourage integration
+6. Mentoring programs for students
+
+.footnote_tiny[[1] 1-4 implicit, 5-6 explicit]
+
+---
+
+# Preliminary Findings
+
+* Non-reservation students more segregated at all colleges
+
+* Over time, overall segregation falls at non-elite colleges, and sustains at elite colleges
+
+* _Implicit_ institutional policies significantly reduce segregation
+  * Stronger effects at elite colleges
+
+* _Explicit_ policies for reducing segregation have no (and sometimes negative) effect 
+
+---
+
+class: inverse, center, middle
+
+# Method 2
+### Mutilevel STERGM
+
+---
+
+# Model - Level 1
+
+For each of the 200 classrooms, I run:
+
+```{r, eval = F}
+stergm(
+  list(network_t1, network_t2),
+  formation = 
+    ~ edges + nodefactor("reservation") + nodematch("reservation") + nodefactor("female") + nodematch("female") + nodefactor("ses") + nodematch("ses") + nodefactor("area") + nodematch("area") + nodecov("score") + absdiff("score") + mutual + gwesp(0.25),
+  dissolution = 
+    ~ edges + nodefactor("reservation") + nodematch("reservation") + nodefactor("female") + nodematch("female") + nodefactor("ses") + nodematch("ses") + nodefactor("area") + nodematch("area") + nodecov("score") + absdiff("score") + mutual + gwesp(0.25),
+  estimate = "CMLE",
+  times = 1:2,
+  control = control.stergm(seed = 100, MLE.MCMC.burnin=50000, CMLE.MCMC.interval=2000)
+)
+```
+
+
+<br/>
+No convergence for 35 classrooms
+
+Degenerate results for 8 classrooms
+
+---
+
+# Model - Level 2
+
+Extracting model coefficients and standard errors from Level 1
+
+Synthesizing effect sizes using a random effects model
+
+Meta-regression using level 2 covariates like<sup>1</sup>:
+1. Proportion of seats taken by _students_ from disadvantaged backgrounds
+2. Proportion of seats taken by _faculty_ from disadvantaged backgrounds
+3. Random assignment of students to dormitories
+4. Random assignment of students to teaching sections
+5. Student taught courses and seminars to encourage integration
+6. Mentoring programs for students
+
+.footnote_tiny[[1] 1-4 implicit, 5-6 explicit]
+
+---
+
+# Preliminary Findings
+
+### Level 1
+* Reciprocal relations 78% likely to form and 83% likely to persist
+* Clustered relations 63% likely to form and 65% likely to persist
+* Homophilous connections based on affirmative action status 48% likely to form and persist
+* Homophilous connections based on gender 43% likely to form and 45% likely to persist
+
+### Level 2
+* Coefficient signs match regression model results (implicit policies reducing affirmative action based homophily), but not significant
+
+
+---
+
+# Appendix: Missing Network Data
+
+
+Absenteeism and non-response across 2 time points
+
+<br/>
+Existing approaches
+* Simple imputation (biased for sparse networks, large missingness)
+* Model based Multiple imputation (node attributes not considered)
+
+<br/>
+Testing another approach
+* Collaborative filtering on network adjacency matrix
+* Include node attributes through factorization machines?
+* Predict both ties and node attributes?
+
+---
+
+class: middle
+
+Thank You!
+
+<br/><br/><br/>
+
+Code here: https://github.com/saurabh-khanna
+
+Help with `imputenet`:
+```{r, eval=FALSE, message=FALSE, warnings=FALSE}
+devtools::install_github("saurabh-khanna/imputenet")
+```
+
+
+
+
+
+
+
+

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Segregation and Affirmative Action in College</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Saurabh Khanna" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Segregation and Affirmative Action in College
+### Saurabh Khanna
+
+---
+
+
+class: middle
+
+# Research Questions
+
+1. How do institutional policies affect segregation based on affirmative action quotas?
+
+2. Do these effects differ for advantaged versus disadvantaged students?
+
+3. Do these effects differ at elite versus non-elite institutions?
+
+
+---
+
+class: inverse, center, middle
+
+# Data
+
+---
+
+class: middle
+
+# Data
+
+* 50 randomly sampled colleges in India
+ + 200 classrooms (4 per college)
+      - ~20000 students (averaging 100 per classroom)
+
+
+* Network data for each classroom
+  + Students nominate upto 10 friends
+  + Longitudinal data - 2 time points
+
+        
+* Affirmative Action Policy
+  + Quotas _reserved_ for students from historically disadvantaged backgrounds
+  + __Reservation students__: Those who gain admission based on these quotas
+  + __Non-Reservation students__: Those who don't
+
+
+---
+
+class: inverse, center, middle
+
+# Method 1
+### Regression on Segregation Scores
+
+---
+
+class: middle
+
+# Segregation Score
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt;  &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Friend (f) &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Not friend (f') &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Reservation (r) &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; A &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; C &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Non-reservation (nr) &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; B &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; D &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;br/&gt;
+
+Natural log of the odds that a student will nominate a friend in their own category, relative to the odds that they will nominate someone in a different category
+
+`$$segregation_{r} = log \left[\frac{f_{r}}{f_{nr}}\times\frac{f'_{nr}}{f'_{r}} \right] = log \left(\frac{AD}{BC} \right)$$`
+`$$segregation_{nr} = log \left[\frac{f_{nr}}{f_{r}}\times\frac{f'_{r}}{f'_{nr}} \right] = log \left(\frac{BC}{AD} \right)$$`
+
+&lt;br/&gt;
+`\(+\)` score `\(\to\)` More within category friendships &lt;br/&gt;
+`\(-\)` score `\(\to\)` More across category friendships &lt;br/&gt;
+0 `\(\to\)` Optimum within/across category friendships (Preference = Opportunity)
+
+---
+
+# Model
+
+For a reservation/non-reservation student `\(i\)` at time points `\(t_1\)` and `\(t_2\)`:
+&lt;br/&gt;&lt;br/&gt;
+
+`$$seg_{i,t_2} = \color{red}{policy_i} + \color{blue}{seg_{i,t_1} + gender_i + SES_i + rural_i + gpa_i + parented_i} + \epsilon_i$$`
+
+&lt;br/&gt;&lt;br/&gt;
+`\(\color{red}{policy_i}\)` can be&lt;sup&gt;1&lt;/sup&gt;:
+1. Proportion of seats taken by _students_ from disadvantaged backgrounds
+2. Proportion of seats taken by _faculty_ from disadvantaged backgrounds
+3. Random assignment of students to dormitories
+4. Random assignment of students to teaching sections
+5. Student taught courses and seminars to encourage integration
+6. Mentoring programs for students
+
+.footnote_tiny[[1] 1-4 implicit, 5-6 explicit]
+
+---
+
+# Preliminary Findings
+
+* Non-reservation students more segregated at all colleges
+
+* Over time, overall segregation falls at non-elite colleges, and sustains at elite colleges
+
+* _Implicit_ institutional policies significantly reduce segregation
+  * Stronger effects at elite colleges
+
+* _Explicit_ policies for reducing segregation have no (and sometimes negative) effect 
+
+---
+
+class: inverse, center, middle
+
+# Method 2
+### Mutilevel STERGM
+
+---
+
+# Model - Level 1
+
+For each of the 200 classrooms, I run:
+
+
+```r
+stergm(
+  list(network_t1, network_t2),
+  formation = 
+    ~ edges + nodefactor("reservation") + nodematch("reservation") + nodefactor("female") + nodematch("female") + nodefactor("ses") + nodematch("ses") + nodefactor("area") + nodematch("area") + nodecov("score") + absdiff("score") + mutual + gwesp(0.25),
+  dissolution = 
+    ~ edges + nodefactor("reservation") + nodematch("reservation") + nodefactor("female") + nodematch("female") + nodefactor("ses") + nodematch("ses") + nodefactor("area") + nodematch("area") + nodecov("score") + absdiff("score") + mutual + gwesp(0.25),
+  estimate = "CMLE",
+  times = 1:2,
+  control = control.stergm(seed = 100, MLE.MCMC.burnin=50000, CMLE.MCMC.interval=2000)
+)
+```
+
+
+&lt;br/&gt;
+No convergence for 35 classrooms
+
+Degenerate results for 8 classrooms
+
+---
+
+# Model - Level 2
+
+Extracting model coefficients and standard errors from Level 1
+
+Synthesizing effect sizes using a random effects model
+
+Meta-regression using level 2 covariates like&lt;sup&gt;1&lt;/sup&gt;:
+1. Proportion of seats taken by _students_ from disadvantaged backgrounds
+2. Proportion of seats taken by _faculty_ from disadvantaged backgrounds
+3. Random assignment of students to dormitories
+4. Random assignment of students to teaching sections
+5. Student taught courses and seminars to encourage integration
+6. Mentoring programs for students
+
+.footnote_tiny[[1] 1-4 implicit, 5-6 explicit]
+
+---
+
+# Preliminary Findings
+
+### Level 1
+* Reciprocal relations 78% likely to form and 83% likely to persist
+* Clustered relations 63% likely to form and 65% likely to persist
+* Homophilous connections based on affirmative action status 48% likely to form and persist
+* Homophilous connections based on gender 43% likely to form and 45% likely to persist
+
+### Level 2
+* Coefficient signs match regression model results (implicit policies reducing affirmative action based homophily), but not significant
+
+
+---
+
+# Appendix: Missing Network Data
+
+
+Absenteeism and non-response across 2 time points
+
+&lt;br/&gt;
+Existing approaches
+* Simple imputation (biased for sparse networks, large missingness)
+* Model based Multiple imputation (node attributes not considered)
+
+&lt;br/&gt;
+Testing another approach
+* Collaborative filtering on network adjacency matrix
+* Include node attributes through factorization machines?
+* Predict both ties and node attributes?
+
+---
+
+class: middle
+
+Thank You!
+
+&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;
+
+Code here: https://github.com/saurabh-khanna
+
+Help with `imputenet`:
+
+```r
+devtools::install_github("saurabh-khanna/imputenet")
+```
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
