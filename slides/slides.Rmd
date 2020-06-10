@@ -200,7 +200,7 @@ Existing approaches
 Testing another approach
 * Collaborative filtering on network adjacency matrix
 * Include node attributes through factorization machines?
-* Predict both ties and node attributes?
+* Impute both ties and node attributes?
 
 ---
 
