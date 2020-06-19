@@ -1,0 +1,335 @@
+---
+title: "Analysis for SN Paper 1 - Experiment"
+author: "Saurabh Khanna"
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.retina = 4)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+library(haven)
+library(stargazer)
+library(AER)
+library(sandwich)
+library(lmtest)
+
+# Parameters
+stufac_file <- here::here("data", "all_appended.dta")
+stu_file <- here::here("data", "stu_admin_all_latest.dta")
+baseline_file <- here::here("data/new_scoring/b_file.dta")
+endline_file <- here::here("data/new_scoring/e_file.dta")
+```
+
+
+```{r}
+df_stu <- 
+  read_dta(stu_file) %>% 
+  mutate(
+    reservation = dplyr::recode(reservation, "Non-reservation" = 0L, "Reservation" = 1L, .default = NA_integer_)
+  )
+
+df <- 
+  read_dta(stufac_file) %>% 
+  left_join(
+    df_stu %>% 
+      select(stdid, classid, reservation, ea_stud_group_criteria),
+    by = "stdid"
+  ) %>% 
+  left_join(read_dta(here::here("/data/res_fac_all.dta")), by = "facid") %>% 
+  filter(ea_stud_group_criteria == 2)
+```
+
+Identify sections
+
+```{r}
+sections <-
+  df %>% 
+  count(classid, course_name) %>% 
+  arrange(classid, desc(n), course_name) %>%
+  group_by(classid) %>% 
+  top_n(1, wt = n) %>%
+  distinct(classid, .keep_all = T) %>% 
+  left_join(
+    df %>% 
+      count(classid, course_name, facid),
+    by = c("classid", "course_name")
+  ) %>% 
+  filter(n.y >= 3) %>%
+  group_by(classid, course_name) %>% 
+  mutate(n_sections = n()) %>% 
+  filter(n_sections > 1) %>% 
+  transmute(
+    classid, 
+    course_name, 
+    facid,
+    section = str_c(classid, row_number())
+  ) %>%
+  ungroup() %>% 
+  left_join(
+    df %>% 
+      select(stdid, classid, course_name, facid), by = c("classid", "course_name", "facid")
+  ) %>% 
+  select(stdid, section) %>% 
+  distinct(stdid, .keep_all = T) %>% 
+  arrange(stdid, section)
+```
+
+
+Section reservation status:
+
+```{r}
+section_res <-
+  sections %>% 
+  left_join(df_stu %>% select(stdid, reservation), by = "stdid") %>% 
+  drop_na() %>% 
+  count(section, reservation) %>% 
+  pivot_wider(
+    names_from = reservation,
+    values_from = n,
+    names_prefix = "res_section_"
+  ) %>% 
+  mutate(
+    res_section_0 = if_else(is.na(res_section_0), 0L, res_section_0),
+    res_section_1 = if_else(is.na(res_section_1), 0L, res_section_1)
+  )
+```
+
+
+Faculty reservation aggregates
+
+```{r, message=F}
+fac_res <-
+  df %>% 
+  left_join(sections, by = "stdid") %>% 
+  drop_na(section) %>% 
+  group_by(section, facid, reservation_fac) %>%
+  summarize(credits = mean(credits, na.rm = T)) %>%
+  arrange(section, facid) %>% 
+  group_by(section) %>% 
+  summarize(
+    fac_res_prop = sum(reservation_fac * credits, na.rm = TRUE) / sum(credits, na.rm = TRUE)
+  ) %>% 
+  mutate(fac_res_prop = fac_res_prop * (1 - fac_res_prop))
+```
+
+
+Segregation scores + Diversity
+
+```{r, warning = F}
+seg_scores <- 
+  read_dta(endline_file) %>% 
+  filter(univtype == 1) %>%
+  left_join(sections, by = "stdid") %>% 
+  drop_na(section, res_stdid, res_e_alter) %>% 
+  count(section, stdid, res_stdid, res_e_alter) %>% 
+  pivot_wider(
+    names_from = res_e_alter,
+    values_from = n,
+    names_prefix = "res_stu_"
+  ) %>% 
+  mutate(
+    res_stu_0 = if_else(is.na(res_stu_0), 0L, res_stu_0),
+    res_stu_1 = if_else(is.na(res_stu_1), 0L, res_stu_1)
+  ) %>% 
+  left_join(section_res, by = "section") %>% 
+  mutate(
+    seg_score = if_else(
+      res_stdid == 0,
+      log((res_stu_0 / res_stu_1) * ((res_section_1 - res_stu_1) / (res_section_0 - res_stu_0 - 1))),
+      log((res_stu_1 / res_stu_0) * ((res_section_0 - res_stu_0) / (res_section_1 - res_stu_1 - 1)))
+    ),
+    seg_score = if_else(seg_score == Inf, 5, seg_score),
+    seg_score = if_else(seg_score == -Inf, -5, seg_score)
+  ) %>% 
+  mutate(
+    prop_res = res_section_1 / (res_section_0 + res_section_1),
+    diversity = prop_res * (1 - prop_res)
+  ) %>% 
+  left_join(df_stu %>% select(stdid, classid, elite, majtype, grade), by = "stdid") %>% 
+  left_join(fac_res, by = "section") %>% 
+  left_join(read_dta("data/controls.dta"), by = "stdid") %>% 
+  mutate_at(
+    vars("seg_score", "diversity", "fac_res_prop"),
+    ~ scale(.) %>% as.vector
+  )
+```
+
+
+Randomization checks
+
+```{r, eval = F}
+seg_scores %>% 
+  lm(diversity ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .) %>% 
+  summary()
+
+seg_scores %>% 
+  lm(fac_res_prop ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .) %>% 
+  summary()
+```
+
+
+Table 1
+
+```{r}
+lm1 <-
+  seg_scores %>%
+  filter(res_stdid == 1) %>% 
+  lm(seg_score ~ diversity + majtype + grade, data = .)
+
+lm2 <-
+  seg_scores %>%
+  filter(res_stdid == 0) %>% 
+  lm(seg_score ~ diversity + majtype + grade, data = .)
+
+lm3 <-
+  seg_scores %>%
+  filter(res_stdid == 1) %>% 
+  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+
+lm4 <-
+  seg_scores %>%
+  filter(res_stdid == 0) %>% 
+  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+
+rob_se <-
+  list(
+    sqrt(diag(vcovHC(lm1, type = "HC1"))),
+    sqrt(diag(vcovHC(lm2, type = "HC1"))),
+    sqrt(diag(vcovHC(lm3, type = "HC1"))),
+    sqrt(diag(vcovHC(lm4, type = "HC1")))
+  )
+
+stargazer(
+  lm1, lm2, lm3, lm4,
+  se = rob_se,
+  title = "Table 3: Effects of diversity of classmates and faculty on segregation",
+  header = F,
+  digits = 2,
+  model.numbers = F,
+  dep.var.caption  = "Segregation (by student reservation status)",
+  dep.var.labels.include  = F,
+  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"),
+  covariate.labels = c("Diversity of classmates", "Diversity of faculty", "Constant"),
+  keep = c("diversity", "fac_res", "Constant"),
+  keep.stat = c("n"),
+  type = "html",
+  out = "testing.html",
+  notes = c(
+    "All models control for department and year."
+  )
+)
+```
+
+
+Table 2
+
+```{r}
+lm1 <-
+  seg_scores %>%
+  filter(res_stdid == 1, elite == 1) %>% 
+  lm(seg_score ~ diversity + majtype + grade, data = .)
+
+lm2 <-
+  seg_scores %>%
+  filter(res_stdid == 0, elite == 1) %>% 
+  lm(seg_score ~ diversity + majtype + grade, data = .)
+
+lm3 <-
+  seg_scores %>%
+  filter(res_stdid == 1, elite == 1) %>% 
+  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+
+lm4 <-
+  seg_scores %>%
+  filter(res_stdid == 0, elite == 1) %>% 
+  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+
+rob_se <-
+  list(
+    sqrt(diag(vcovHC(lm1, type = "HC1"))),
+    sqrt(diag(vcovHC(lm2, type = "HC1"))),
+    sqrt(diag(vcovHC(lm3, type = "HC1"))),
+    sqrt(diag(vcovHC(lm4, type = "HC1")))
+  )
+
+stargazer(
+  lm1, lm2, lm3, lm4,
+  se = rob_se,
+  title = "Table 4: Effects of diversity of classmates and faculty on segregation at elite colleges",
+  header = F,
+  digits = 2,
+  model.numbers = F,
+  dep.var.caption  = "Segregation (by student reservation status)",
+  dep.var.labels.include  = F,
+  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"),
+  covariate.labels = c("Diversity of classmates", "Diversity of faculty", "Constant"),
+  keep = c("diversity", "fac_res", "Constant"),
+  keep.stat = c("n"),
+  type = "html",
+  out = "testing.html",
+  notes = c(
+    "All models control for department and year."
+  )
+)
+```
+
+
+Table 3
+
+```{r}
+lm1 <-
+  seg_scores %>%
+  filter(res_stdid == 1, elite == 0) %>% 
+  lm(seg_score ~ diversity + majtype + grade, data = .)
+
+lm2 <-
+  seg_scores %>%
+  filter(res_stdid == 0, elite == 0) %>% 
+  lm(seg_score ~ diversity + majtype + grade, data = .)
+
+lm3 <-
+  seg_scores %>%
+  filter(res_stdid == 1, elite == 0) %>% 
+  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+
+lm4 <-
+  seg_scores %>%
+  filter(res_stdid == 0, elite == 0) %>% 
+  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+
+rob_se <-
+  list(
+    sqrt(diag(vcovHC(lm1, type = "HC1"))),
+    sqrt(diag(vcovHC(lm2, type = "HC1"))),
+    sqrt(diag(vcovHC(lm3, type = "HC1"))),
+    sqrt(diag(vcovHC(lm4, type = "HC1")))
+  )
+
+stargazer(
+  lm1, lm2, lm3, lm4,
+  se = rob_se,
+  title = "Table 5: Effects of diversity of classmates and faculty on segregation at non-elite colleges",
+  header = F,
+  digits = 2,
+  model.numbers = F,
+  dep.var.caption  = "Segregation (by student reservation status)",
+  dep.var.labels.include  = F,
+  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"),
+  covariate.labels = c("Diversity of classmates", "Diversity of faculty", "Constant"),
+  keep = c("diversity", "fac_res", "Constant"),
+  keep.stat = c("n"),
+  type = "html",
+  out = "testing.html",
+  notes = c(
+    "All models control for department and year."
+  )
+)
+```
+

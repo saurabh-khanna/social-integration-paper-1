@@ -4,7 +4,6 @@
     <title>Segregation and Affirmative Action in College</title>
     <meta charset="utf-8" />
     <meta name="author" content="Saurabh Khanna" />
-    <script src="libs/header-attrs-2.2/header-attrs.js"></script>
     <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
     <link href="libs/remark-css-0.0.1/default-fonts.css" rel="stylesheet" />
   </head>
@@ -18,16 +17,23 @@ class: center, middle, inverse, title-slide
 ---
 
 
-class: middle
 
 # Research Questions
 
 1. How do institutional policies affect segregation based on affirmative action quotas?
 
+--
+
 2. Do these effects differ for advantaged versus disadvantaged students?
+
+--
 
 3. Do these effects differ at elite versus non-elite institutions?
 
+--
+
+&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;
+Why?
 
 ---
 
@@ -37,8 +43,6 @@ class: inverse, center, middle
 
 ---
 
-class: middle
-
 # Data
 
 * 50 randomly sampled colleges in India
@@ -46,9 +50,15 @@ class: middle
       - ~20000 students (averaging 100 per classroom)
 
 
+--
+
+
 * Network data for each classroom
   + Students nominate upto 10 friends
   + Longitudinal data - 2 time points
+
+
+--
 
         
 * Affirmative Action Policy
@@ -65,8 +75,6 @@ class: inverse, center, middle
 ### Regression on Segregation Scores
 
 ---
-
-class: middle
 
 # Segregation Score
 
@@ -93,12 +101,19 @@ class: middle
 &lt;/table&gt;
 &lt;br/&gt;
 
+
+--
+
+
 Natural log of the odds that a student will nominate a friend in their own category, relative to the odds that they will nominate someone in a different category
 
 `$$segregation_{r} = log \left[\frac{f_{r}}{f_{nr}}\times\frac{f'_{nr}}{f'_{r}} \right] = log \left(\frac{AD}{BC} \right)$$`
 `$$segregation_{nr} = log \left[\frac{f_{nr}}{f_{r}}\times\frac{f'_{r}}{f'_{nr}} \right] = log \left(\frac{BC}{AD} \right)$$`
 
 &lt;br/&gt;
+
+--
+
 `\(+\)` score `\(\to\)` More within category friendships &lt;br/&gt;
 `\(-\)` score `\(\to\)` More across category friendships &lt;br/&gt;
 0 `\(\to\)` Optimum within/across category friendships (Preference = Opportunity)
@@ -113,6 +128,9 @@ For a reservation/non-reservation student `\(i\)` at time points `\(t_1\)` and `
 `$$seg_{i,t_2} = \color{red}{policy_i} + \color{blue}{seg_{i,t_1} + gender_i + SES_i + rural_i + gpa_i + parented_i} + \epsilon_i$$`
 
 &lt;br/&gt;&lt;br/&gt;
+
+--
+
 `\(\color{red}{policy_i}\)` can be&lt;sup&gt;1&lt;/sup&gt;:
 1. Proportion of seats taken by _students_ from disadvantaged backgrounds
 2. Proportion of seats taken by _faculty_ from disadvantaged backgrounds
@@ -121,7 +139,7 @@ For a reservation/non-reservation student `\(i\)` at time points `\(t_1\)` and `
 5. Student taught courses and seminars to encourage integration
 6. Mentoring programs for students
 
-.footnote_tiny[[1] 1-4 implicit, 5-6 explicit]
+.footnote[[1] 1-4 implicit, 5-6 explicit]
 
 ---
 
@@ -129,10 +147,16 @@ For a reservation/non-reservation student `\(i\)` at time points `\(t_1\)` and `
 
 * Non-reservation students more segregated at all colleges
 
+--
+
 * Over time, overall segregation falls at non-elite colleges, and sustains at elite colleges
+
+--
 
 * _Implicit_ institutional policies significantly reduce segregation
   * Stronger effects at elite colleges
+
+--
 
 * _Explicit_ policies for reducing segregation have no (and sometimes negative) effect 
 
@@ -164,6 +188,8 @@ stergm(
 ```
 
 
+--
+
 &lt;br/&gt;
 No convergence for 27 classrooms
 
@@ -185,7 +211,7 @@ Meta-regression using level 2 covariates like&lt;sup&gt;1&lt;/sup&gt;:
 5. Student taught courses and seminars to encourage integration
 6. Mentoring programs for students
 
-.footnote_tiny[[1] 1-4 implicit, 5-6 explicit]
+.footnote[[1] 1-4 implicit, 5-6 explicit]
 
 ---
 
@@ -196,6 +222,10 @@ Meta-regression using level 2 covariates like&lt;sup&gt;1&lt;/sup&gt;:
 * Clustered relations 63% likely to form and 65% likely to persist
 * Homophilous connections based on affirmative action status 48% likely to form and persist
 * Homophilous connections based on gender 43% likely to form and 45% likely to persist
+
+
+--
+
 
 ### Level 2
 * Coefficient signs match regression model results (implicit policies reducing affirmative action based homophily), but not significant
@@ -208,16 +238,23 @@ Meta-regression using level 2 covariates like&lt;sup&gt;1&lt;/sup&gt;:
 
 Absenteeism and non-response across 2 time points
 
+--
+
 &lt;br/&gt;
-Existing approaches
+Existing approaches &lt;sup&gt;1&lt;/sup&gt;
 * Simple imputation (biased for sparse networks, large missingness)
 * Model based Multiple imputation (node attributes not considered)
 
+.footnote[[1] Huisman 2009; Koskinen et al. 2013; Hipp et al. 2015; Wang et al. 2016]
+--
+
 &lt;br/&gt;
 Testing another approach
-* Collaborative filtering on network adjacency matrix
-* Include node attributes through factorization machines?
-* Impute both ties and node attributes?
+* Include ties and node attributes through collaborative filtering and factorization machines
+* Impute ties and if needed, node attributes
+* Works for valued networks
+&lt;br/&gt;
+
 
 ---
 
@@ -228,20 +265,12 @@ Thank You!
 &lt;br/&gt;&lt;br/&gt;&lt;br/&gt;
 
 Code here: https://github.com/saurabh-khanna
-
+&lt;br/&gt;&lt;br/&gt;&lt;br/&gt;
 Help with `imputenet`:
 
 ```r
 devtools::install_github("saurabh-khanna/imputenet")
 ```
-
-
-
-
-
-
-
-
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
