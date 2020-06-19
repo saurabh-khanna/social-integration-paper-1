@@ -308,7 +308,7 @@ df %>%
 ## Integration v Policy
 ### Y1 to Y2
 
-```{r, results="hide"}
+```{r, results="hide", fig.retina=4}
 lm2_r <- 
   lm(
     z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
@@ -423,6 +423,16 @@ stargazer(
     "Instruments for IV models: Proportion of seats officially reserved for students and faculty."
   )
 )
+
+lm(
+    z_seg_g2 ~ z_seg_g1 + reservation + elite + ea_polic_integration_students4, 
+    data = df
+  ) %>% 
+sensemakr( 
+  treatment = c("ea_polic_integration_students4"),
+  benchmark_covariates = c("reservation"),
+  kd = 1:3
+) %>% plot(text = F)
 ```
 
 

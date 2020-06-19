@@ -180,23 +180,23 @@ Table 1
 ```{r}
 lm1 <-
   seg_scores %>%
-  filter(res_stdid == 1) %>% 
-  lm(seg_score ~ diversity + majtype + grade, data = .)
+  filter(res_stdid == 1, grade == 2) %>% 
+  lm(seg_score ~ diversity + majtype, data = .)
 
 lm2 <-
   seg_scores %>%
-  filter(res_stdid == 0) %>% 
-  lm(seg_score ~ diversity + majtype + grade, data = .)
+  filter(res_stdid == 0, grade == 2) %>% 
+  lm(seg_score ~ diversity + majtype, data = .)
 
 lm3 <-
   seg_scores %>%
-  filter(res_stdid == 1) %>% 
-  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+  filter(res_stdid == 1, grade == 2) %>% 
+  lm(seg_score ~ fac_res_prop + majtype, data = .)
 
 lm4 <-
   seg_scores %>%
-  filter(res_stdid == 0) %>% 
-  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+  filter(res_stdid == 0, grade == 2) %>% 
+  lm(seg_score ~ fac_res_prop + majtype, data = .)
 
 rob_se <-
   list(
@@ -233,23 +233,23 @@ Table 2
 ```{r}
 lm1 <-
   seg_scores %>%
-  filter(res_stdid == 1, elite == 1) %>% 
-  lm(seg_score ~ diversity + majtype + grade, data = .)
+  filter(res_stdid == 1, grade == 2, elite == 1) %>% 
+  lm(seg_score ~ diversity + majtype, data = .)
 
 lm2 <-
   seg_scores %>%
-  filter(res_stdid == 0, elite == 1) %>% 
-  lm(seg_score ~ diversity + majtype + grade, data = .)
+  filter(res_stdid == 0, grade == 2, elite == 1) %>% 
+  lm(seg_score ~ diversity + majtype, data = .)
 
 lm3 <-
   seg_scores %>%
-  filter(res_stdid == 1, elite == 1) %>% 
-  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+  filter(res_stdid == 1, grade == 2, elite == 1) %>% 
+  lm(seg_score ~ fac_res_prop + majtype, data = .)
 
 lm4 <-
   seg_scores %>%
-  filter(res_stdid == 0, elite == 1) %>% 
-  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+  filter(res_stdid == 0, grade == 2, elite == 1) %>% 
+  lm(seg_score ~ fac_res_prop + majtype, data = .)
 
 rob_se <-
   list(
@@ -286,23 +286,23 @@ Table 3
 ```{r}
 lm1 <-
   seg_scores %>%
-  filter(res_stdid == 1, elite == 0) %>% 
-  lm(seg_score ~ diversity + majtype + grade, data = .)
+  filter(res_stdid == 1, grade == 2, elite == 0) %>% 
+  lm(seg_score ~ diversity + majtype, data = .)
 
 lm2 <-
   seg_scores %>%
-  filter(res_stdid == 0, elite == 0) %>% 
-  lm(seg_score ~ diversity + majtype + grade, data = .)
+  filter(res_stdid == 0, grade == 2, elite == 0) %>% 
+  lm(seg_score ~ diversity + majtype, data = .)
 
 lm3 <-
   seg_scores %>%
-  filter(res_stdid == 1, elite == 0) %>% 
-  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+  filter(res_stdid == 1, grade == 2, elite == 0) %>% 
+  lm(seg_score ~ fac_res_prop + majtype, data = .)
 
 lm4 <-
   seg_scores %>%
-  filter(res_stdid == 0, elite == 0) %>% 
-  lm(seg_score ~ fac_res_prop + majtype + grade, data = .)
+  filter(res_stdid == 0, grade == 2, elite == 0) %>% 
+  lm(seg_score ~ fac_res_prop + majtype, data = .)
 
 rob_se <-
   list(
