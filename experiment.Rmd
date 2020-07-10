@@ -82,6 +82,42 @@ sections <-
 ```
 
 
+Section checks:
+
+```{r}
+df %>% 
+  count(classid, course_name) %>% 
+  arrange(classid, desc(n), course_name) %>%
+  group_by(classid) %>% 
+  slice(2) %>% 
+  left_join(
+    df %>% 
+      count(classid, course_name, facid),
+    by = c("classid", "course_name")
+  ) %>% 
+  filter(n.y >= 3) %>%
+  group_by(classid, course_name) %>% 
+  mutate(n_sections = n()) %>% 
+  filter(n_sections > 1) %>% 
+  transmute(
+    classid, 
+    course_name, 
+    facid,
+    section = str_c(classid, row_number())
+  ) %>%
+  ungroup() %>% 
+  left_join(
+    df %>% 
+      select(stdid, classid, course_name, facid), by = c("classid", "course_name", "facid")
+  ) %>% 
+  select(section, stdid) %>% 
+  distinct(stdid, .keep_all = T) %>% 
+  arrange(section, stdid)
+```
+
+
+
+
 Section reservation status:
 
 ```{r}
@@ -166,37 +202,37 @@ Randomization checks
 
 ```{r, eval = F}
 seg_scores %>% 
-  lm(diversity ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .) %>% 
+  lm(diversity ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english + classid, data = .) %>% 
   summary()
 
 seg_scores %>% 
-  lm(fac_res_prop ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .) %>% 
+  lm(fac_res_prop ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english + classid, data = .) %>% 
   summary()
 ```
 
 
-Table 1
+Table 1 (All)
 
 ```{r}
 lm1 <-
   seg_scores %>%
-  filter(res_stdid == 1, grade == 2) %>% 
-  lm(seg_score ~ diversity + majtype, data = .)
+  filter(res_stdid == 1) %>% 
+  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm2 <-
   seg_scores %>%
-  filter(res_stdid == 0, grade == 2) %>% 
-  lm(seg_score ~ diversity + majtype, data = .)
+  filter(res_stdid == 0) %>% 
+  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm3 <-
   seg_scores %>%
-  filter(res_stdid == 1, grade == 2) %>% 
-  lm(seg_score ~ fac_res_prop + majtype, data = .)
+  filter(res_stdid == 1) %>% 
+  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm4 <-
   seg_scores %>%
-  filter(res_stdid == 0, grade == 2) %>% 
-  lm(seg_score ~ fac_res_prop + majtype, data = .)
+  filter(res_stdid == 0) %>% 
+  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 rob_se <-
   list(
@@ -228,28 +264,28 @@ stargazer(
 ```
 
 
-Table 2
+Table 2 (Elite/Selective)
 
 ```{r}
 lm1 <-
   seg_scores %>%
-  filter(res_stdid == 1, grade == 2, elite == 1) %>% 
-  lm(seg_score ~ diversity + majtype, data = .)
+  filter(res_stdid == 1, elite == 1) %>% 
+  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm2 <-
   seg_scores %>%
-  filter(res_stdid == 0, grade == 2, elite == 1) %>% 
-  lm(seg_score ~ diversity + majtype, data = .)
+  filter(res_stdid == 0, elite == 1) %>% 
+  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm3 <-
   seg_scores %>%
-  filter(res_stdid == 1, grade == 2, elite == 1) %>% 
-  lm(seg_score ~ fac_res_prop + majtype, data = .)
+  filter(res_stdid == 1, elite == 1) %>% 
+  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm4 <-
   seg_scores %>%
-  filter(res_stdid == 0, grade == 2, elite == 1) %>% 
-  lm(seg_score ~ fac_res_prop + majtype, data = .)
+  filter(res_stdid == 0, elite == 1) %>% 
+  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 rob_se <-
   list(
@@ -281,28 +317,28 @@ stargazer(
 ```
 
 
-Table 3
+Table 3 (Non-elite/non-selective)
 
 ```{r}
 lm1 <-
   seg_scores %>%
-  filter(res_stdid == 1, grade == 2, elite == 0) %>% 
-  lm(seg_score ~ diversity + majtype, data = .)
+  filter(res_stdid == 1, elite == 0) %>% 
+  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm2 <-
   seg_scores %>%
-  filter(res_stdid == 0, grade == 2, elite == 0) %>% 
-  lm(seg_score ~ diversity + majtype, data = .)
+  filter(res_stdid == 0, elite == 0) %>% 
+  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm3 <-
   seg_scores %>%
-  filter(res_stdid == 1, grade == 2, elite == 0) %>% 
-  lm(seg_score ~ fac_res_prop + majtype, data = .)
+  filter(res_stdid == 1, elite == 0) %>% 
+  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm4 <-
   seg_scores %>%
-  filter(res_stdid == 0, grade == 2, elite == 0) %>% 
-  lm(seg_score ~ fac_res_prop + majtype, data = .)
+  filter(res_stdid == 0, elite == 0) %>% 
+  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 rob_se <-
   list(
