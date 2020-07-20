@@ -201,7 +201,7 @@ seg_scores <-
 Randomization checks
 
 ```{r, eval = F}
-seg_scores %>% 
+seg_scores %>%
   lm(diversity ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english + classid, data = .) %>% 
   summary()
 

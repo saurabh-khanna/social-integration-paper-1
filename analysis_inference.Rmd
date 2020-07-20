@@ -86,6 +86,10 @@ df <-
       group_by(department_id) %>% 
       summarize(stu_res_actual = mean(reservation, na.rm = TRUE)),
     by = "department_id"
+  ) %>%
+  mutate(
+    stu_res_actual = stu_res_actual * (1 - stu_res_actual),
+    fac_res_actual = fac_res_actual * (1 - fac_res_actual)
   ) %>% 
   mutate_at(
     vars(starts_with(c("z_homophily", "z_reciprocity", "z_transitivity", "z_n_stud", "stu_res_", "fac_res_")), age),
@@ -280,19 +284,19 @@ Checking IV stage-1 assumption:
 
 ```{r}
 df %>% 
-  lm(stu_res_actual ~  z_seg_g1 + female + age + ses + stu_res_official + reservation + elite, data = .) %>%
+  lm(stu_res_actual ~  z_seg_g1 + female + age + stu_res_official + reservation + elite, data = .) %>%
   linearHypothesis(c("stu_res_official = 0"), vcov = vcovHC, type = "HC1")
 
 df %>% 
-  lm(fac_res_actual ~  z_seg_g1 + female + age + ses + fac_res_official + reservation + elite, data = .) %>%
+  lm(fac_res_actual ~  z_seg_g1 + female + age + fac_res_official + reservation + elite, data = .) %>%
   linearHypothesis(c("fac_res_official = 0"), vcov = vcovHC, type = "HC1")
 
 df %>% 
-  lm(stu_res_actual ~  z_seg_g3 + female + age + ses + stu_res_official + reservation + elite, data = .) %>%
+  lm(stu_res_actual ~  z_seg_g3 + female + age + stu_res_official + reservation + elite, data = .) %>%
   linearHypothesis(c("stu_res_official = 0"), vcov = vcovHC, type = "HC1")
 
 df %>% 
-  lm(fac_res_actual ~  z_seg_g3 + female + age + ses + fac_res_official + reservation + elite, data = .) %>%
+  lm(fac_res_actual ~  z_seg_g3 + female + age + fac_res_official + reservation + elite, data = .) %>%
   linearHypothesis(c("fac_res_official = 0"), vcov = vcovHC, type = "HC1")
 ```
 
