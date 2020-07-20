@@ -151,8 +151,7 @@ fac_res <-
   group_by(section) %>% 
   summarize(
     fac_res_prop = sum(reservation_fac * credits, na.rm = TRUE) / sum(credits, na.rm = TRUE)
-  ) %>% 
-  mutate(fac_res_prop = fac_res_prop * (1 - fac_res_prop))
+  )
 ```
 
 
@@ -185,14 +184,17 @@ seg_scores <-
     seg_score = if_else(seg_score == -Inf, -5, seg_score)
   ) %>% 
   mutate(
-    prop_res = res_section_1 / (res_section_0 + res_section_1),
-    diversity = prop_res * (1 - prop_res)
+    stu_res_prop = res_section_1 / (res_section_0 + res_section_1)
   ) %>% 
   left_join(df_stu %>% select(stdid, classid, elite, majtype, grade), by = "stdid") %>% 
   left_join(fac_res, by = "section") %>% 
   left_join(read_dta("data/controls.dta"), by = "stdid") %>% 
+  mutate(
+   stu_diversity = if_else(res_stdid == 0, stu_res_prop, 1 - stu_res_prop),
+   fac_diversity = if_else(res_stdid == 0, fac_res_prop, 1 - fac_res_prop)
+  ) %>% 
   mutate_at(
-    vars("seg_score", "diversity", "fac_res_prop"),
+    vars("seg_score", "stu_diversity", "fac_diversity"),
     ~ scale(.) %>% as.vector
   )
 ```
@@ -202,11 +204,11 @@ Randomization checks
 
 ```{r, eval = F}
 seg_scores %>%
-  lm(diversity ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english + classid, data = .) %>% 
+  lm(stu_diversity ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english + classid, data = .) %>% 
   summary()
 
 seg_scores %>% 
-  lm(fac_res_prop ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english + classid, data = .) %>% 
+  lm(fac_diversity ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english + classid, data = .) %>% 
   summary()
 ```
 
@@ -217,22 +219,22 @@ Table 1 (All)
 lm1 <-
   seg_scores %>%
   filter(res_stdid == 1) %>% 
-  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm2 <-
   seg_scores %>%
   filter(res_stdid == 0) %>% 
-  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm3 <-
   seg_scores %>%
   filter(res_stdid == 1) %>% 
-  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm4 <-
   seg_scores %>%
   filter(res_stdid == 0) %>% 
-  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 rob_se <-
   list(
@@ -270,22 +272,22 @@ Table 2 (Elite/Selective)
 lm1 <-
   seg_scores %>%
   filter(res_stdid == 1, elite == 1) %>% 
-  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm2 <-
   seg_scores %>%
   filter(res_stdid == 0, elite == 1) %>% 
-  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm3 <-
   seg_scores %>%
   filter(res_stdid == 1, elite == 1) %>% 
-  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm4 <-
   seg_scores %>%
   filter(res_stdid == 0, elite == 1) %>% 
-  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 rob_se <-
   list(
@@ -323,22 +325,22 @@ Table 3 (Non-elite/non-selective)
 lm1 <-
   seg_scores %>%
   filter(res_stdid == 1, elite == 0) %>% 
-  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm2 <-
   seg_scores %>%
   filter(res_stdid == 0, elite == 0) %>% 
-  lm(seg_score ~ diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm3 <-
   seg_scores %>%
   filter(res_stdid == 1, elite == 0) %>% 
-  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm4 <-
   seg_scores %>%
   filter(res_stdid == 0, elite == 0) %>% 
-  lm(seg_score ~ fac_res_prop + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
+  lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 rob_se <-
   list(
