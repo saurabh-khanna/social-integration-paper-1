@@ -158,6 +158,34 @@ fac_res <-
 Segregation scores + Diversity
 
 ```{r, warning = F}
+baseline_seg_scores <-
+  read_dta(baseline_file) %>% 
+  filter(univtype == 1) %>%
+  left_join(sections, by = "stdid") %>% 
+  drop_na(section, res_stdid, res_b_alter) %>% 
+  count(section, stdid, res_stdid, res_b_alter) %>% 
+  pivot_wider(
+    names_from = res_b_alter,
+    values_from = n,
+    names_prefix = "res_stu_"
+  ) %>% 
+  mutate(
+    res_stu_0 = if_else(is.na(res_stu_0), 0L, res_stu_0),
+    res_stu_1 = if_else(is.na(res_stu_1), 0L, res_stu_1)
+  ) %>% 
+  left_join(section_res, by = "section") %>% 
+  mutate(
+    b_seg_score = if_else(
+      res_stdid == 0,
+      log((res_stu_0 / res_stu_1) * ((res_section_1 - res_stu_1) / (res_section_0 - res_stu_0 - 1))),
+      log((res_stu_1 / res_stu_0) * ((res_section_0 - res_stu_0) / (res_section_1 - res_stu_1 - 1)))
+    ),
+    b_seg_score = if_else(b_seg_score == Inf, 5, b_seg_score),
+    b_seg_score = if_else(b_seg_score == -Inf, -5, b_seg_score)
+  ) %>% 
+  select(stdid, b_seg_score)
+
+
 seg_scores <- 
   read_dta(endline_file) %>% 
   filter(univtype == 1) %>%
@@ -189,12 +217,16 @@ seg_scores <-
   left_join(df_stu %>% select(stdid, classid, elite, majtype, grade), by = "stdid") %>% 
   left_join(fac_res, by = "section") %>% 
   left_join(read_dta("data/controls.dta"), by = "stdid") %>% 
+  left_join(baseline_seg_scores, by = "stdid") %>% 
   mutate(
    stu_diversity = if_else(res_stdid == 0, stu_res_prop, 1 - stu_res_prop),
    fac_diversity = if_else(res_stdid == 0, fac_res_prop, 1 - fac_res_prop)
   ) %>% 
+  mutate(
+    seg_score = seg_score - b_seg_score
+  ) %>% 
   mutate_at(
-    vars("seg_score", "stu_diversity", "fac_diversity"),
+    vars("seg_score", "b_seg_score", "stu_diversity", "fac_diversity"),
     ~ scale(.) %>% as.vector
   )
 ```
@@ -204,10 +236,12 @@ Randomization checks
 
 ```{r, eval = F}
 seg_scores %>%
+  filter(grade == 2) %>% 
   lm(stu_diversity ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english + classid, data = .) %>% 
   summary()
 
 seg_scores %>% 
+  filter(grade == 2) %>% 
   lm(fac_diversity ~ female + age + score + father_ed_ind + mother_ed_ind + school_years_english + classid, data = .) %>% 
   summary()
 ```
@@ -218,21 +252,25 @@ Table 1 (All)
 ```{r}
 lm1 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 1) %>% 
   lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm2 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 0) %>% 
   lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm3 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 1) %>% 
   lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm4 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 0) %>% 
   lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
@@ -255,7 +293,7 @@ stargazer(
   dep.var.labels.include  = F,
   column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"),
   covariate.labels = c("Diversity of classmates", "Diversity of faculty", "Constant"),
-  keep = c("diversity", "fac_res", "Constant"),
+  keep = c("stu_diversity", "fac_diversity", "Constant"),
   keep.stat = c("n"),
   type = "html",
   out = "testing.html",

@@ -123,6 +123,14 @@ df_ne <- df %>% distinct(classid, .keep_all = TRUE) %>% filter(elite == 0)
 ```
 
 
+## Overlap between friendship and studymate networks
+
+```{r}
+
+```
+
+
+
 ## Segregation levels and gains
 
 ```{r, fig.retina = 4}
