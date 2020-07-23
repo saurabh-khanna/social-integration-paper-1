@@ -217,14 +217,14 @@ seg_scores <-
   left_join(df_stu %>% select(stdid, classid, elite, majtype, grade), by = "stdid") %>% 
   left_join(fac_res, by = "section") %>% 
   left_join(read_dta("data/controls.dta"), by = "stdid") %>% 
-  left_join(baseline_seg_scores, by = "stdid") %>% 
+  left_join(baseline_seg_scores, by = "stdid") %>%
   mutate(
    stu_diversity = if_else(res_stdid == 0, stu_res_prop, 1 - stu_res_prop),
    fac_diversity = if_else(res_stdid == 0, fac_res_prop, 1 - fac_res_prop)
   ) %>% 
-  mutate(
-    seg_score = seg_score - b_seg_score
-  ) %>% 
+  # mutate(
+  #   seg_score = seg_score - b_seg_score
+  # ) %>% 
   mutate_at(
     vars("seg_score", "b_seg_score", "stu_diversity", "fac_diversity"),
     ~ scale(.) %>% as.vector
@@ -285,7 +285,7 @@ rob_se <-
 stargazer(
   lm1, lm2, lm3, lm4,
   se = rob_se,
-  title = "Table 3: Effects of diversity of classmates and faculty on segregation",
+  title = "Table 4: Effects of diversity of classmates and faculty on segregation",
   header = F,
   digits = 2,
   model.numbers = F,
@@ -298,7 +298,7 @@ stargazer(
   type = "html",
   out = "testing.html",
   notes = c(
-    "All models control for department and year."
+    "All models control for pre-treatment student characteristics and department-year fixed effects."
   )
 )
 ```
@@ -309,21 +309,25 @@ Table 2 (Elite/Selective)
 ```{r}
 lm1 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 1, elite == 1) %>% 
   lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm2 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 0, elite == 1) %>% 
   lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm3 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 1, elite == 1) %>% 
   lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm4 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 0, elite == 1) %>% 
   lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
@@ -338,7 +342,7 @@ rob_se <-
 stargazer(
   lm1, lm2, lm3, lm4,
   se = rob_se,
-  title = "Table 4: Effects of diversity of classmates and faculty on segregation at selective colleges",
+  title = "Table 5: Effects of diversity of classmates and faculty on segregation at selective colleges",
   header = F,
   digits = 2,
   model.numbers = F,
@@ -351,7 +355,7 @@ stargazer(
   type = "html",
   out = "testing.html",
   notes = c(
-    "All models control for department and year."
+    "All models control for pre-treatment student characteristics and department-year fixed effects."
   )
 )
 ```
@@ -362,21 +366,25 @@ Table 3 (Non-elite/non-selective)
 ```{r}
 lm1 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 1, elite == 0) %>% 
   lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm2 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 0, elite == 0) %>% 
   lm(seg_score ~ stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm3 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 1, elite == 0) %>% 
   lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
 lm4 <-
   seg_scores %>%
+  filter(grade == 2) %>% 
   filter(res_stdid == 0, elite == 0) %>% 
   lm(seg_score ~ fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
 
@@ -391,7 +399,7 @@ rob_se <-
 stargazer(
   lm1, lm2, lm3, lm4,
   se = rob_se,
-  title = "Table 5: Effects of diversity of classmates and faculty on segregation at non-selective colleges",
+  title = "Table 6: Effects of diversity of classmates and faculty on segregation at non-selective colleges",
   header = F,
   digits = 2,
   model.numbers = F,
@@ -404,7 +412,7 @@ stargazer(
   type = "html",
   out = "testing.html",
   notes = c(
-    "All models control for department and year."
+    "All models control for pre-treatment student characteristics and department-year fixed effects."
   )
 )
 ```

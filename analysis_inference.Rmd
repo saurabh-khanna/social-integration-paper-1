@@ -123,10 +123,68 @@ df_ne <- df %>% distinct(classid, .keep_all = TRUE) %>% filter(elite == 0)
 ```
 
 
-## Overlap between friendship and studymate networks
+## Segregation plots
+
+```{r fig.retina=4}
+df %>% 
+  select(elite, reservation, starts_with("z_seg")) %>% 
+  pivot_longer(
+    cols = contains("z_seg"),
+    names_to = "year",
+    names_prefix = "z_seg_g",
+    values_to = "segregation",
+    values_drop_na = TRUE
+  ) %>% 
+  na_if("") %>% 
+  drop_na(reservation) %>%
+  mutate(
+    elite = factor(elite, labels = c("Non-selective colleges", "Selective colleges"))
+  ) %>%
+  mutate(
+    year = str_c("Year ", year)
+  ) %>% 
+  ggplot(aes(segregation, stat(density), fill = factor(reservation))) +
+  geom_density(alpha = 0.5) +
+  facet_grid(vars(year), vars(elite)) +
+  theme(legend.position = "bottom") +
+  labs(
+    x = "Segregation",
+    y = "Density",
+    fill = "Student Reservation Status"
+  )
+
+ggsave("fig1.png")
+  
+```
+
+
+
+## Overlap OVL between friendship and studymate networks
 
 ```{r}
+# baseline
+read_dta(here::here("data", "old_seg_scores.dta")) %>% 
+  summarize(
+    mu1 = mean(b_integration_studymate, na.rm = T),
+    mu2 = mean(b_integration_friend, na.rm = T),
+    sd1 = sd(b_integration_studymate, na.rm = T)
+  ) %>% 
+  mutate(
+    d = (mu1 - mu2) / sd1,
+    ovl = 2 * pnorm(-abs(d) / 2)
+  )
 
+# endline
+read_dta(here::here("data", "old_seg_scores.dta")) %>% 
+  summarize(
+    mu1 = mean(e_integration_studymate, na.rm = T),
+    mu2 = mean(e_integration_friend, na.rm = T),
+    sd1 = sd(e_integration_studymate, na.rm = T)
+  ) %>% 
+  mutate(
+    d = (mu1 - mu2) / sd1,
+    ovl = 2 * pnorm(-abs(d) / 2)
+  )
 ```
 
 
