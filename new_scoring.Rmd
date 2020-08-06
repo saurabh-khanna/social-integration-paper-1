@@ -113,6 +113,7 @@ e_newscores <-
 Merging new score:
 
 ```{r}
-full_join(b_newscores, e_newscores, by = "stdid")
+full_join(b_newscores, e_newscores, by = "stdid") %>% 
+  write_rds(here::here("data/new_scoring/friends", "newscores.Rds"))
 ```
 
