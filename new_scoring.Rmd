@@ -22,8 +22,8 @@ library(lmtest)
 
 # Parameters
 data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
-baseline_file <- here::here("data/new_scoring/b_file.dta")
-endline_file <- here::here("data/new_scoring/e_file.dta")
+baseline_file <- here::here("data/new_scoring/friends/b_file.dta")
+endline_file <- here::here("data/new_scoring/friends/e_file.dta")
 ```
 
 
