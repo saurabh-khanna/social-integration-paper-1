@@ -24,9 +24,9 @@ library(sensemakr)
 # Parameters
 data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
 trends_file <- here::here("data/trends.csv")
-newscores_file <- here::here("data/new_scoring/newscores.Rds")
+newscores_file <- here::here("data/new_scoring/friends/newscores.Rds")
 fac_res_file <- here::here("data/fac_res_prop.csv")
-n_studymates_file <- here::here("data/n_studymates.csv")
+# n_studymates_file <- here::here("data/n_studymates.csv")
 ```
 
 
@@ -47,10 +47,10 @@ df <-
     read_csv(fac_res_file),
     by = "department_id"
   ) %>% 
-  left_join(
-    read_csv(n_studymates_file),
-    by = "stdid"
-  ) %>% 
+  # left_join(
+  #   read_csv(n_studymates_file),
+  #   by = "stdid"
+  # ) %>% 
   mutate(
     female = gender - 1,
     age = 2017 - lubridate::year(b_birthdate),
@@ -72,11 +72,11 @@ df <-
     z_transitivity_g1 = if_else(grade == 2, b_transitivity, NA_real_),
     z_transitivity_g2 = if_else(grade == 2, e_transitivity, NA_real_),
     z_transitivity_g3 = if_else(grade == 4, b_transitivity, NA_real_),
-    z_transitivity_g4 = if_else(grade == 4, e_transitivity, NA_real_),
-    z_n_studymates_g1 = if_else(grade == 2, b_n_studymates, NA_real_),
-    z_n_studymates_g2 = if_else(grade == 2, e_n_studymates, NA_real_),
-    z_n_studymates_g3 = if_else(grade == 4, b_n_studymates, NA_real_),
-    z_n_studymates_g4 = if_else(grade == 4, e_n_studymates, NA_real_),
+    z_transitivity_g4 = if_else(grade == 4, e_transitivity, NA_real_)
+    # z_n_studymates_g1 = if_else(grade == 2, b_n_studymates, NA_real_),
+    # z_n_studymates_g2 = if_else(grade == 2, e_n_studymates, NA_real_),
+    # z_n_studymates_g3 = if_else(grade == 4, b_n_studymates, NA_real_),
+    # z_n_studymates_g4 = if_else(grade == 4, e_n_studymates, NA_real_)
   ) 
 
 df <-
@@ -153,8 +153,7 @@ df %>%
     fill = "Student Reservation Status"
   )
 
-ggsave("fig1.png")
-  
+#ggsave("report/fig1.png")
 ```
 
 
