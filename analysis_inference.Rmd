@@ -158,7 +158,7 @@ df %>%
     fill = "Student Reservation Status"
   )
 
-#ggsave("report/fig1.png")
+#ggsave("report/figure.png")
 ```
 
 
@@ -2085,21 +2085,42 @@ stargazer(
 
 
 
-## Student fixed effects
+## Classroom fixed effects
 
 ```{r, warning = F, results="hide"}
-df <-
+df2 <-
   df %>%
   mutate(
-    diff_homophily = e_homophily - b_homophily,
+    b_res = if_else(stu_merge != 2, reservation, NA_integer_),
+    e_res = if_else(stu_merge != 1, reservation, NA_integer_),
+    b_female = if_else(stu_merge != 2, female %>% as.integer(), NA_integer_),
+    e_female = if_else(stu_merge != 1, female %>% as.integer(), NA_integer_),
+    b_age = if_else(stu_merge != 2, age, NA_real_),
+    e_age = if_else(stu_merge != 1, age, NA_real_),
+  ) %>% 
+  group_by(classid) %>% 
+  summarize(
+    b_seg_new = mean(b_seg_new, na.rm = TRUE),
+    e_seg_new = mean(e_seg_new, na.rm = TRUE),
+    b_reciprocity = mean(b_reciprocity, na.rm = TRUE),
+    e_reciprocity = mean(e_reciprocity, na.rm = TRUE),
+    b_transitivity = mean(b_transitivity, na.rm = TRUE),
+    e_transitivity = mean(e_transitivity, na.rm = TRUE),
+    b_res = mean(b_res, na.rm = TRUE),
+    e_res = mean(e_res, na.rm = TRUE),
+    b_female = mean(b_female, na.rm = TRUE),
+    e_female = mean(e_female, na.rm = TRUE),
+    b_age = mean(b_age, na.rm = TRUE),
+    e_age = mean(e_age, na.rm = TRUE),
+    elite = mean(elite, na.rm = TRUE)
+  ) %>% 
+  mutate(
     diff_reciprocity = e_reciprocity - b_reciprocity,
     diff_transitivity = e_transitivity - b_transitivity,
     diff_seg_studymate = e_seg_new - b_seg_new,
-    #diff_n_studymate = e_n_studymates - b_n_studymates,
-    diff_ct = e_ct_score_perc - b_ct_score_perc,
-    diff_ql = e_ql_score_perc - b_ql_score_perc,
-    diff_math = e_math_g3_score_perc - b_math_g1_score_perc,
-    diff_physics = e_physics_g3_score_perc - b_physics_g1_score_perc
+    diff_res = e_res - b_res,
+    diff_female = e_female - b_female,
+    diff_age = e_age - b_age
   ) %>%
   mutate_at(
     vars(starts_with("diff_")),
@@ -2107,70 +2128,61 @@ df <-
   )
 
   
-lm1_r <-
+lm1 <-
   lm(
-    diff_seg_studymate ~ diff_reciprocity + diff_transitivity, 
-    data = df %>% filter(reservation == 1)
+    diff_seg_studymate ~ diff_reciprocity + diff_transitivity + diff_res + diff_female + diff_age, 
+    data = df2
   )
 
-lm1_nr <-
+
+lm1_e <-
   lm(
-    diff_seg_studymate ~ diff_reciprocity + diff_transitivity, 
-    data = df %>% filter(reservation == 0)
+    diff_seg_studymate ~ diff_reciprocity + diff_transitivity + diff_res + diff_female + diff_age, 
+    data = df2 %>% filter(elite == 1)
   )
 
-lm1_r_e <-
+lm1_ne <-
   lm(
-    diff_seg_studymate ~ diff_reciprocity + diff_transitivity, 
-    data = df %>% filter(reservation == 1, elite == 1)
+    diff_seg_studymate ~ diff_reciprocity + diff_transitivity + diff_res + diff_female + diff_age, 
+    data = df2 %>% filter(elite == 0)
   )
-
-lm1_nr_e <-
-  lm(
-    diff_seg_studymate ~ diff_reciprocity + diff_transitivity, 
-    data = df %>% filter(reservation == 0, elite == 1)
-  )
-
-lm1_r_ne <-
-  lm(
-    diff_seg_studymate ~ diff_reciprocity + diff_transitivity, 
-    data = df %>% filter(reservation == 1, elite == 0)
-  )
-
-lm1_nr_ne <-
-  lm(
-    diff_seg_studymate ~ diff_reciprocity + diff_transitivity, 
-    data = df %>% filter(reservation == 0, elite == 0)
-  )
-
 
 rob_se <- 
   list(
-    sqrt(diag(vcovHC(lm1_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm1_nr, type = "HC1"))),
-    sqrt(diag(vcovHC(lm1_r_e, type = "HC1"))),
-    sqrt(diag(vcovHC(lm1_nr_e, type = "HC1"))),
-    sqrt(diag(vcovHC(lm1_r_ne, type = "HC1"))),
-    sqrt(diag(vcovHC(lm1_nr_ne, type = "HC1")))
+    sqrt(diag(vcovHC(lm1, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_e, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_ne, type = "HC1")))
   )
 
 
 stargazer(
-  lm1_r, lm1_nr, lm1_r_e, lm1_nr_e, lm1_r_ne, lm1_nr_ne,
-  title = "Table 9: Gains in segregation controlling for student fixed effects",
+  lm1, lm1_e, lm1_ne,
+  title = "Table 12: Gains in segregation controlling for department-year fixed effects",
   se = rob_se,
   header = F,
   digits = 2,
   model.numbers = F,
   dep.var.caption  = "Gains in Segregation",
   dep.var.labels.include  = F,
-  column.labels   = c("Reservation", "Non-reservation", "Reservation elite", "Non-reservation elite", "Reservation non-elite", "Non-reservation non-elite"),
-  #covariate.labels = c("Gains in class homophily", "Gains in studymates", "Gains in class reciprocity", "Gains in class transitivity", "Constant"),
+  column.labels   = c("Overall", "Selective colleges", "Non-selective colleges"),
+  #covariate.labels = c("Gains in class reciprocity", "Gains in class transitivity", "Constant"),
   keep = c("diff_", "Constant"),
   type = "html",
-  out = "testing.html",
-  notes = "All OLS models control for student fixed effects."
+  keep.stat = c("n"),
+  out = "testing.html"
 )
 ```
 
+Try Plots
+
+```{r}
+df2 %>% 
+  ggplot(aes(diff_transitivity, diff_seg_studymate)) +
+  geom_smooth() +
+  hrbrthemes::theme_ipsum() +
+  labs(
+    x = "Transitivity",
+    y = "Segregation"
+  )
+```
 
