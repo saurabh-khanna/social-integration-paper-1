@@ -95,9 +95,37 @@ seg_scores <-
 ## Randomization checks
 
 ```{r}
+# df %>% 
+#   select(stdid, classid, course_name, facid, everything()) %>% 
+#   arrange(stdid, classid, course_name, facid) %>% 
+#   left_join(sections, by = c("classid", "course_name", "facid")) %>% 
+#   left_join(df_stu %>% select(stdid, grade), by = "stdid") %>% 
+#   left_join(read_dta("data/controls.dta"), by = "stdid") %>%
+#   left_join(read_rds(newscores_file), by = "stdid") %>%
+#   filter(grade == 2) %>% 
+#   mutate(
+#     section_id = str_c(classid, course_name, facid, sep = "_"),
+#     classid_new = str_c(classid, course_name, sep = "_")
+#     ) %>% 
+#   group_by(section_id, classid_new) %>%
+#   summarize(
+#     n = n(),
+#     stu_res_section = mean(stu_res_section, na.rm = TRUE),
+#     female = mean(female, na.rm = TRUE),
+#     age = mean(age, na.rm = TRUE),
+#     score = mean(score, na.rm = TRUE),
+#     father_ed_ind = mean(father_ed_ind, na.rm = TRUE),
+#     mother_ed_ind = mean(mother_ed_ind, na.rm = TRUE),
+#     school_years_english = mean(school_years_english, na.rm = TRUE),
+#     b_seg_new = mean(b_seg_new, na.rm = TRUE)
+#   ) %>% 
+#   filter(n > 1) %>% 
+#   lm_robust(stu_res_section ~ b_seg_new + female + age + score + school_years_english, data = ., fixed_effects = ~ classid_new) %>%
+#   summary()
+
+
 seg_scores %>%
-  mutate(diversity = stu_diversity + fac_diversity) %>% 
-  lm_robust(diversity ~ female + age + score + factor(father_ed_ind) + factor(mother_ed_ind) + school_years_english, data = ., fixed_effects = ~ classid) %>%
+  lm_robust(stu_diversity ~ female + age + score + father_ed_ind + school_years_english, data = ., fixed_effects = ~ classid) %>%
   summary()
 ```
 
@@ -106,7 +134,7 @@ seg_scores %>%
 ```{r, warning = F, message=F, fig.retina=4}
 seg_scores %>% 
   mutate(
-    reservation = factor(reservation, labels = c("Non-reservation", "Reservation"))
+    reservation = factor(reservation, labels = c("Non-reservation students", "Reservation students"))
   ) %>%
   ggplot(aes(stu_diversity, e_seg_new)) +
   geom_smooth(method = "loess") +
@@ -114,12 +142,13 @@ seg_scores %>%
   hrbrthemes::theme_ipsum() +
   labs(
     x = "Diversity of classmates",
-    y = "Segregation"
+    y = "Segregation",
+    caption = "All values reported in standard deviation units."
   )
 
 seg_scores %>% 
   mutate(
-    reservation = factor(reservation, labels = c("Non-reservation", "Reservation"))
+    reservation = factor(reservation, labels = c("Non-reservation students", "Reservation students"))
   ) %>%
   ggplot(aes(fac_diversity, e_seg_new)) +
   geom_smooth(method = "loess") +
@@ -127,7 +156,8 @@ seg_scores %>%
   hrbrthemes::theme_ipsum() +
   labs(
     x = "Diversity of faculty",
-    y = "Segregation"
+    y = "Segregation",
+    caption = "All values reported in standard deviation units."
   )
 ```
 

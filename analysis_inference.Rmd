@@ -130,7 +130,8 @@ df_ne <- df %>% distinct(classid, .keep_all = TRUE) %>% filter(elite == 0)
 ## Segregation plots
 
 ```{r fig.retina=4}
-df %>% 
+df2 <-
+  df %>% 
   select(elite, reservation, starts_with("z_seg")) %>% 
   pivot_longer(
     cols = contains("z_seg"),
@@ -147,18 +148,42 @@ df %>%
   mutate(
     year = str_c("Year ", year)
   ) %>% 
+  group_by(elite, year, reservation) %>% 
+  summarize(
+    mean = median(segregation, na.rm = T)
+  )
+
+
+df %>% 
+  select(elite, reservation, starts_with("z_seg")) %>% 
+  pivot_longer(
+    cols = contains("z_seg"),
+    names_to = "year",
+    names_prefix = "z_seg_g",
+    values_to = "segregation",
+    values_drop_na = TRUE
+  ) %>% 
+  na_if("") %>% 
+  drop_na(reservation) %>%
+  mutate(
+    elite = factor(elite, labels = c("Non-selective colleges", "Selective colleges"))
+  ) %>%
+  mutate(
+    year = str_c("Year ", year),
+    reservation = dplyr::recode(reservation, `0` = "Non-reservation", `1` = "Reservation", .default = NA_character_)
+  ) %>% 
   ggplot(aes(segregation, stat(density), fill = factor(reservation))) +
   geom_density(alpha = 0.5) +
-  geom_vline(aes(xintercept = mean(segregation), group = factor(reservation)), linetype = "dashed", size = 1, show.legend = F) +
+  geom_vline(data = df2, aes(xintercept = mean, color = factor(reservation)), linetype = "dashed", size = 1, show.legend = F) +
   facet_grid(vars(year), vars(elite)) +
   theme(legend.position = "bottom") +
   labs(
-    x = "Segregation",
+    x = "Segregation (log odds)",
     y = "Density",
     fill = "Student Reservation Status"
   )
 
-#ggsave("report/figure.png")
+ggsave("report/figure.png")
 ```
 
 
@@ -272,8 +297,7 @@ df %>%
   drop_na(reservation, elite) %>% 
   group_by(reservation, elite) %>%
   summarize_all(mean, na.rm = T) %>%
-  mutate_at(vars(starts_with("z")), ~ round(., 2))
-  
+  mutate_at(vars(starts_with("z")), ~ round(., 2)) %>% 
   ungroup() %>% 
   pivot_longer(cols = starts_with("z"), names_to = "year", values_to = "seg") %>% 
   mutate(
@@ -282,7 +306,7 @@ df %>%
     ) %>% 
   ggplot(aes(year, seg, group = reservation, fill = factor(reservation))) +
   geom_col(position = "dodge") +
-  facet_wrap(vars(elite), labeller = labeller(elite = c(`0` = "Non-elite", `1` = "Elite"))) +
+  facet_wrap(vars(elite), labeller = labeller(elite = c(`0` = "Non-selective colleges", `1` = "Selective colleges"))) +
   theme_bw() +
   theme(legend.position = "bottom") +
   labs(
