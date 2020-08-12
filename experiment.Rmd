@@ -337,7 +337,12 @@ read_rds(here::here("data/stu_admin_all_with_netvars.Rds")) %>%
   ggplot(aes(stu_diversity, diff_reciprocity)) +
   geom_smooth(method = "loess", span = 0.8) +
   geom_smooth(method = "lm", linetype = "dashed", color = "red", se = F) +
-  hrbrthemes::theme_ipsum()
+  hrbrthemes::theme_ipsum() +
+  labs(
+    x = "Diversity of classmates",
+    y = "Change in reciprocity",
+    caption = "All values reported in standard deviation units."
+  )
 
 read_rds(here::here("data/stu_admin_all_with_netvars.Rds")) %>% 
   select(stdid, contains("reciprocity"), contains("transitivity"), contains("homophily")) %>% 
@@ -352,6 +357,11 @@ read_rds(here::here("data/stu_admin_all_with_netvars.Rds")) %>%
   ggplot(aes(stu_diversity, diff_transitivity)) +
   geom_smooth(method = "loess", span = 0.9) +
   geom_smooth(method = "lm", linetype = "dashed", color = "red", se = F) +
-  hrbrthemes::theme_ipsum()
+  hrbrthemes::theme_ipsum() +
+  labs(
+    x = "Diversity of classmates",
+    y = "Change in transitivity",
+    caption = "All values reported in standard deviation units."
+  )
 ```
 
