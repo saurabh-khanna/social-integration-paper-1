@@ -91,6 +91,10 @@ seg_scores <-
 ```
 
 
+```{r}
+# extracting file to compare how lpoly works in stata
+# seg_scores %>% write_dta(here::here("data/lpoly.dta"), version = 13)
+```
 
 ## Randomization checks
 
