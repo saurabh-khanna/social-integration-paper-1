@@ -32,20 +32,21 @@ newscores_file <- here::here("data/new_scoring/friends/newscores.Rds")
 
 ```{r}
 df_stu <- 
-  read_dta(stu_file) %>% 
+  read_dta(stu_file) %>%
   mutate(
     reservation = dplyr::recode(reservation, "Non-reservation" = 0L, "Reservation" = 1L, .default = NA_integer_)
   )
 
 df <- 
-  read_dta(stufac_file) %>% 
+  read_dta(stufac_file) %>%
+  distinct(stdid, course_name, .keep_all = T) %>% 
   left_join(
     df_stu %>% 
-      select(stdid, classid, reservation, ea_stud_group_criteria),
+      select(stdid, classid, reservation, ea_stud_group_criteria, grade),
     by = "stdid"
   ) %>% 
   left_join(read_dta(here::here("/data/res_fac_all.dta")), by = "facid") %>% 
-  filter(ea_stud_group_criteria == 2) %>% 
+  filter(ea_stud_group_criteria == 2, grade == 2) %>% 
   drop_na(reservation)
 ```
 
@@ -63,15 +64,34 @@ sections <-
   ungroup() %>% 
   filter(n_stu > 1)
 
+# seg_scores <-
+#   df %>% 
+#   left_join(sections, by = c("classid", "course_name", "facid")) %>% 
+#   left_join(read_rds(newscores_file), by = "stdid") %>%
+#   left_join(df_stu %>% select(stdid, elite), by = "stdid") %>% 
+#   left_join(read_dta("data/controls.dta"), by = "stdid") %>%
+#   mutate(
+#     fac_diversity = if_else(reservation == reservation_fac, 0, 1),
+#     stu_diversity = if_else(reservation == 0, stu_res_section, 1 - stu_res_section)
+#     ) %>%
+#   mutate_at(
+#     vars(contains("seg_new"), contains("diversity")),
+#     ~ scale(.) %>% as.vector
+#   )
+
 seg_scores <-
   df %>% 
-  select(stdid, classid, course_name, facid, everything()) %>% 
-  arrange(stdid, classid, course_name, facid) %>% 
   left_join(sections, by = c("classid", "course_name", "facid")) %>% 
+  mutate(
+    fac_diversity = if_else(reservation == reservation_fac, 0, 1),
+    stu_diversity = if_else(reservation == 0, stu_res_section, 1 - stu_res_section)
+  ) %>%
   group_by(stdid, reservation) %>% 
   summarize(
-    fac_res_prop = sum(reservation_fac * credits, na.rm = TRUE) / sum(credits, na.rm = TRUE),
-    stu_res_prop = sum(stu_res_section * credits, na.rm = TRUE) / sum(credits, na.rm = TRUE)
+    fac_diversity = sum(fac_diversity * credits, na.rm = TRUE) / sum(credits, na.rm = TRUE),
+    stu_diversity = sum(stu_diversity * credits, na.rm = TRUE) / sum(credits, na.rm = TRUE)
+    # fac_res_prop = sum(reservation_fac * credits, na.rm = TRUE) / sum(credits, na.rm = TRUE),
+    # stu_res_prop = sum(stu_res_section * credits, na.rm = TRUE) / sum(credits, na.rm = TRUE)
   ) %>%
   ungroup() %>% 
   left_join(read_rds(newscores_file), by = "stdid") %>%
@@ -79,11 +99,17 @@ seg_scores <-
   left_join(read_dta("data/controls.dta"), by = "stdid") %>% 
   mutate(
     # stu_diversity = stu_res_prop * (1 - stu_res_prop),
-    # fac_diversity = fac_res_prop * (1 - fac_res_prop)
-    stu_diversity = if_else(reservation == 0, stu_res_prop, 1 - stu_res_prop),
-    fac_diversity = if_else(reservation == 0, fac_res_prop, 1 - fac_res_prop)
+    # fac_diversity = fac_res_prop * (1 - fac_res_prop),
+    # stu_diversity = if_else(reservation == 0, stu_res_prop, 1 - stu_res_prop),
+    # fac_diversity = if_else(reservation == 0, fac_res_prop, 1 - fac_res_prop),
+    
+    father_college = if_else(father_ed_ind > 3 & !is.na(father_ed_ind), 1L, 0L),
+    father_college = if_else(is.na(father_ed_ind), NA_integer_, father_college),
+    mother_college = if_else(mother_ed_ind > 3 & !is.na(mother_ed_ind), 1L, 0L),
+    mother_college = if_else(is.na(mother_ed_ind), NA_integer_, mother_college),
+    ses = ses %>% as.integer(),
+    univcode = str_sub(classid, 1, 5)
   ) %>% 
-  filter(grade == 2) %>% 
   mutate_at(
     vars("e_seg_new", "b_seg_new", "stu_diversity", "fac_diversity"),
     ~ scale(.) %>% as.vector
@@ -92,46 +118,60 @@ seg_scores <-
 
 
 ```{r}
-# extracting file to compare how lpoly works in stata
-# seg_scores %>% write_dta(here::here("data/lpoly.dta"), version = 13)
+# extracting data frame for stata comparisons
+# seg_scores %>% write_dta("data/seg_scores.dta", version = 13)
 ```
+
 
 ## Randomization checks
 
 ```{r}
-# df %>% 
-#   select(stdid, classid, course_name, facid, everything()) %>% 
-#   arrange(stdid, classid, course_name, facid) %>% 
-#   left_join(sections, by = c("classid", "course_name", "facid")) %>% 
-#   left_join(df_stu %>% select(stdid, grade), by = "stdid") %>% 
-#   left_join(read_dta("data/controls.dta"), by = "stdid") %>%
-#   left_join(read_rds(newscores_file), by = "stdid") %>%
-#   filter(grade == 2) %>% 
-#   mutate(
-#     section_id = str_c(classid, course_name, facid, sep = "_"),
-#     classid_new = str_c(classid, course_name, sep = "_")
-#     ) %>% 
-#   group_by(section_id, classid_new) %>%
-#   summarize(
-#     n = n(),
-#     stu_res_section = mean(stu_res_section, na.rm = TRUE),
-#     female = mean(female, na.rm = TRUE),
-#     age = mean(age, na.rm = TRUE),
-#     score = mean(score, na.rm = TRUE),
-#     father_ed_ind = mean(father_ed_ind, na.rm = TRUE),
-#     mother_ed_ind = mean(mother_ed_ind, na.rm = TRUE),
-#     school_years_english = mean(school_years_english, na.rm = TRUE),
-#     b_seg_new = mean(b_seg_new, na.rm = TRUE)
-#   ) %>% 
-#   filter(n > 1) %>% 
-#   lm_robust(stu_res_section ~ b_seg_new + female + age + score + school_years_english, data = ., fixed_effects = ~ classid_new) %>%
-#   summary()
+# Check 1
+lm1 <-
+  seg_scores %>% 
+  lm_robust(stu_diversity ~ female + age + score + b_seg_new + ses + hs_private + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
+lm2 <-
+  seg_scores %>% 
+  lm_robust(fac_diversity ~ female + age + score + b_seg_new + ses + hs_private + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
-seg_scores %>%
-  lm_robust(stu_diversity ~ female + age + score + father_ed_ind + school_years_english, data = ., fixed_effects = ~ classid) %>%
-  summary()
+#texreg::screenreg(list(lm1, lm2), custom.note = "%stars \n All models control for department-year fixed effects.", stars = c(0.01, 0.05, 0.1), include.ci = FALSE)
+
+summary(lm1)
+tidy(lm1) %>% select(term, estimate, p.value) %>% mutate_at(vars(estimate, p.value), ~ round(., digits = 2))
+tidy(lm2) %>% select(term, estimate, p.value) %>% mutate_at(vars(estimate, p.value), ~ round(., digits = 2))
 ```
+
+
+
+## Table 1 (All)
+
+```{r, results = "asis"}
+lm1 <-
+  seg_scores %>%
+  filter(reservation == 1, elite == 0) %>% 
+  lm_robust(e_seg_new ~ stu_diversity + female + score + age + hs_private + ses + father_college + b_seg_new, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+
+lm2 <-
+  seg_scores %>%
+  filter(reservation == 0, elite == 0) %>% 
+  lm_robust(e_seg_new ~ stu_diversity + female + score + age + hs_private + ses + father_college + b_seg_new, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+
+lm3 <-
+  seg_scores %>%
+  filter(reservation == 1, elite == 0) %>% 
+  lm_robust(e_seg_new ~ fac_diversity + female + score + age + hs_private + ses + father_college + b_seg_new, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+
+lm4 <-
+  seg_scores %>%
+  filter(reservation == 0, elite == 0) %>% 
+  lm_robust(e_seg_new ~ fac_diversity + female + score + age + hs_private + ses + father_college + b_seg_new, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+
+texreg::screenreg(list(lm1, lm2, lm3, lm4), custom.note = "%stars \n All models control for department-year fixed effects.", omit.coef = "(female)|(score)|(college)|(school)|(ses)|(seg)|(age)|(hs)", stars = c(0.01, 0.05, 0.1), include.ci = FALSE)
+```
+
+
+
 
 ## Figures for non-linearity
 
@@ -166,164 +206,6 @@ seg_scores %>%
 ```
 
 
-
-## Table 1 (All)
-
-```{r, results = "hide"}
-lm1 <-
-  seg_scores %>%
-  filter(reservation == 1) %>% 
-  lm(e_seg_new ~ b_seg_new + stu_diversity + classid + female + age + score + factor(father_ed_ind) + factor(mother_ed_ind) + school_years_english, data = .)
-
-lm2 <-
-  seg_scores %>%
-  filter(reservation == 0) %>% 
-  lm(e_seg_new ~ b_seg_new + stu_diversity + classid + female + age + score + factor(father_ed_ind) + factor(mother_ed_ind) + school_years_english, data = .)
-
-lm3 <-
-  seg_scores %>%
-  filter(reservation == 1) %>% 
-  lm(e_seg_new ~ b_seg_new + fac_diversity + classid + female + age + score + factor(father_ed_ind) + factor(mother_ed_ind) + school_years_english, data = .)
-
-lm4 <-
-  seg_scores %>%
-  filter(reservation == 0) %>% 
-  lm(e_seg_new ~ b_seg_new + fac_diversity + classid + female + age + score + factor(father_ed_ind) + factor(mother_ed_ind) + school_years_english, data = .)
-
-rob_se <-
-  list(
-    sqrt(diag(vcovHC(lm1, type = "HC1"))),
-    sqrt(diag(vcovHC(lm2, type = "HC1"))),
-    sqrt(diag(vcovHC(lm3, type = "HC1"))),
-    sqrt(diag(vcovHC(lm4, type = "HC1")))
-  )
-
-stargazer(
-  lm1, lm2, lm3, lm4,
-  se = rob_se,
-  title = "Table 4: Effects of diversity of classmates and faculty on segregation",
-  header = F,
-  digits = 2,
-  model.numbers = F,
-  dep.var.caption  = "Segregation (by student reservation status)",
-  dep.var.labels.include  = F,
-  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Diversity of classmates", "Diversity of faculty", "Constant"),
-  keep = c("stu_diversity", "fac_diversity", "Constant"),
-  keep.stat = c("n"),
-  type = "html",
-  out = "testing.html",
-  notes = c(
-    "All models control for pre-treatment student characteristics and department-year fixed effects."
-  )
-)
-```
-
-
-## Table 2 (Elite/Selective)
-
-```{r, results = "hide"}
-lm1 <-
-  seg_scores %>%
-  filter(reservation == 1, elite == 1) %>% 
-  lm(e_seg_new ~ b_seg_new + stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
-
-lm2 <-
-  seg_scores %>%
-  filter(reservation == 0, elite == 1) %>% 
-  lm(e_seg_new ~ b_seg_new + stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
-
-lm3 <-
-  seg_scores %>%
-  filter(reservation == 1, elite == 1) %>% 
-  lm(e_seg_new ~ b_seg_new + fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
-
-lm4 <-
-  seg_scores %>%
-  filter(reservation == 0, elite == 1) %>% 
-  lm(e_seg_new ~ b_seg_new + fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
-
-rob_se <-
-  list(
-    sqrt(diag(vcovHC(lm1, type = "HC1"))),
-    sqrt(diag(vcovHC(lm2, type = "HC1"))),
-    sqrt(diag(vcovHC(lm3, type = "HC1"))),
-    sqrt(diag(vcovHC(lm4, type = "HC1")))
-  )
-
-stargazer(
-  lm1, lm2, lm3, lm4,
-  se = rob_se,
-  title = "Table 5: Effects of diversity of classmates and faculty on segregation at selective colleges",
-  header = F,
-  digits = 2,
-  model.numbers = F,
-  dep.var.caption  = "Segregation (by student reservation status)",
-  dep.var.labels.include  = F,
-  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Diversity of classmates", "Diversity of faculty", "Constant"),
-  keep = c("diversity", "fac_res", "Constant"),
-  keep.stat = c("n"),
-  type = "html",
-  out = "testing.html",
-  notes = c(
-    "All models control for pre-treatment student characteristics and department-year fixed effects."
-  )
-)
-```
-
-
-## Table 3 (Non-elite/non-selective)
-
-```{r, results = "hide"}
-lm1 <-
-  seg_scores %>%
-  filter(reservation == 1, elite == 0) %>% 
-  lm(e_seg_new ~ b_seg_new + stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
-
-lm2 <-
-  seg_scores %>%
-  filter(reservation == 0, elite == 0) %>% 
-  lm(e_seg_new ~ b_seg_new + stu_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
-
-lm3 <-
-  seg_scores %>%
-  filter(reservation == 1, elite == 0) %>% 
-  lm(e_seg_new ~ b_seg_new + fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
-
-lm4 <-
-  seg_scores %>%
-  filter(reservation == 0, elite == 0) %>% 
-  lm(e_seg_new ~ b_seg_new + fac_diversity + classid + female + age + score + father_ed_ind + mother_ed_ind + school_years_english, data = .)
-
-rob_se <-
-  list(
-    sqrt(diag(vcovHC(lm1, type = "HC1"))),
-    sqrt(diag(vcovHC(lm2, type = "HC1"))),
-    sqrt(diag(vcovHC(lm3, type = "HC1"))),
-    sqrt(diag(vcovHC(lm4, type = "HC1")))
-  )
-
-stargazer(
-  lm1, lm2, lm3, lm4,
-  se = rob_se,
-  title = "Table 6: Effects of diversity of classmates and faculty on segregation at non-selective colleges",
-  header = F,
-  digits = 2,
-  model.numbers = F,
-  dep.var.caption  = "Segregation (by student reservation status)",
-  dep.var.labels.include  = F,
-  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Diversity of classmates", "Diversity of faculty", "Constant"),
-  keep = c("diversity", "fac_res", "Constant"),
-  keep.stat = c("n"),
-  type = "html",
-  out = "testing.html",
-  notes = c(
-    "All models control for pre-treatment student characteristics and department-year fixed effects."
-  )
-)
-```
 
 ## Mechanisms
 
@@ -367,5 +249,32 @@ read_rds(here::here("data/stu_admin_all_with_netvars.Rds")) %>%
     y = "Change in transitivity",
     caption = "All values reported in standard deviation units."
   )
+```
+
+
+
+## Loop to check outliers causing imbalance
+
+```{r}
+# classids <- df %>% distinct(classid) %>% arrange(classid) %>% unlist()
+# results <- tibble()
+# 
+# for (class in classids) {
+#   print(str_c("Now at class: ", class))
+#   
+#   results <-
+#     bind_rows(
+#       results,
+#       seg_scores %>% 
+#         filter(classid == class) %>% 
+#         lm_robust(stu_diversity ~ female + score + mother_college + father_college + school_years_english, data = ., fixed_effects = ~ classid_new) %>%
+#         tidy() %>% 
+#         bind_cols(classid = class, .)
+#     )
+# }
+# 
+# results %>%
+#   filter(p.value < 0.05 & !is.na(p.value)) %>% 
+#   count(classid)
 ```
 
