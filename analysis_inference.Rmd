@@ -40,18 +40,8 @@ df <-
   read_rds() %>% 
   #filter(stu_merge == 3) %>% 
   mutate_at(vars(contains("ea_seats_reser")), replace_na, replace = 0) %>% 
-  left_join(
-    read_rds(newscores_file),
-    by = "stdid"
-  ) %>% 
-  left_join(
-    read_csv(fac_res_file),
-    by = "department_id"
-  ) %>% 
-  # left_join(
-  #   read_csv(n_studymates_file),
-  #   by = "stdid"
-  # ) %>% 
+  left_join(read_rds(newscores_file), by = "stdid") %>% 
+  left_join(read_csv(fac_res_file), by = "department_id") %>% 
   mutate(
     female = gender - 1,
     age = 2017 - lubridate::year(b_birthdate),
@@ -88,12 +78,8 @@ df <-
       summarize(stu_res_actual = mean(reservation, na.rm = TRUE)),
     by = "department_id"
   ) %>%
-  mutate(
-    stu_res_actual = stu_res_actual * (1 - stu_res_actual),
-    fac_res_actual = fac_res_actual * (1 - fac_res_actual)
-  ) %>% 
   mutate_at(
-    vars(starts_with(c("z_homophily", "z_reciprocity", "z_transitivity", "z_n_stud", "stu_res_", "fac_res_")), age),
+    vars(starts_with(c("z_homophily", "z_reciprocity", "z_transitivity", "z_n_stud", "stu_res_", "fac_res_", "z_seg_g")), age),
     ~ scale(.) %>% as.vector
   ) %>% 
   left_join(
@@ -117,14 +103,47 @@ df <-
     ea_scstcell_yn = if_else(ea_scstcell_yn > 0 & !is.na(ea_scstcell_yn), 1, ea_scstcell_yn) %>% as.integer()
   )
 
-# df %>% 
-#   select(starts_with(c("z_seg_g", "z_homophily", "z_reciprocity", "z_transitivity", "z_n_stud", "stu_res_", "fac_res_")), age) %>% 
-#   summary()
-
 
 # Preparing classid level data for homophily/reciprocity/transitivity at elite/non-elite colleges
-df_e <- df %>% distinct(classid, .keep_all = TRUE) %>% filter(elite == 1)
-df_ne <- df %>% distinct(classid, .keep_all = TRUE) %>% filter(elite == 0)
+# df_e <- df %>% distinct(classid, .keep_all = TRUE) %>% filter(elite == 1)
+# df_ne <- df %>% distinct(classid, .keep_all = TRUE) %>% filter(elite == 0)
+```
+
+
+## Appendix figure
+
+```{r}
+df %>% 
+  group_by(department_id) %>% 
+  summarize(stu_res_actual = mean(reservation, na.rm = TRUE)) %>% 
+  ggplot(aes(x = stu_res_actual)) +
+  geom_histogram(binwidth = 0.025, color = "black") +
+  scale_x_continuous(
+    breaks = seq(0, 1, 0.1),
+    minor_breaks = NULL,
+    labels = scales::percent_format(accuracy = 1)
+  ) +
+  scale_y_continuous(breaks = seq(0, 10, 1)) +
+  labs(
+    x = "Proportion of reservation students in department",
+    y = "Number of departments"
+  )
+
+df %>% 
+  select(stdid, elite, reservation, contains("seg_new")) %>%
+  drop_na(reservation) %>%
+  mutate(
+    b_high_seg = (b_seg_new > 4),
+    e_high_seg = (e_seg_new > 4)
+  ) %>%
+  count(elite, reservation, e_high_seg) %>% 
+  drop_na()
+```
+
+```{r}
+738 / (738 + 5859)
+
+(91+82+93+70)/4
 ```
 
 
@@ -179,7 +198,7 @@ df %>%
   facet_grid(vars(year), vars(elite)) +
   theme(legend.position = "bottom") +
   labs(
-    x = "Segregation (log odds)",
+    x = "Segregation (SD units)",
     y = "Density",
     fill = "Student Reservation Status"
   )
@@ -222,63 +241,63 @@ read_dta(here::here("data", "old_seg_scores.dta")) %>%
 ## Segregation levels and gains
 
 ```{r, fig.retina = 4}
-df2 <-
-  df %>% 
-  select(starts_with(c("b_seg_new", "e_seg_new")), elite, reservation) %>%
-  drop_na(reservation) %>%
-  mutate(
-    elite = factor(elite, labels = c("Non-elite", "Elite"))
-  ) %>%
-  pivot_longer(
-    cols = contains("seg_"),
-    names_to = "survey",
-    values_to = "seg_studymate",
-    values_drop_na = TRUE
-  ) %>% 
-  mutate(
-    survey = dplyr::recode(
-      survey,
-      `b_seg_new` = "Beginning of Year 1/Year 3",
-      `e_seg_new` = "End of Year 2/Year 4",
-      .default = NA_character_
-    )
-  ) %>% 
-  group_by(elite, survey, reservation) %>% 
-  summarize(
-    mean = median(seg_studymate, na.rm = T)
-  )
-
-df %>%
-  select(starts_with(c("b_seg_new", "e_seg_new")), elite, reservation) %>%
-  drop_na(reservation) %>%
-  mutate(
-    elite = factor(elite, labels = c("Non-elite", "Elite"))
-  ) %>%
-  pivot_longer(
-    cols = contains("seg_"),
-    names_to = "survey",
-    values_to = "seg_studymate",
-    values_drop_na = TRUE
-  ) %>%
-  mutate(
-    survey = dplyr::recode(
-      survey,
-      `b_seg_new` = "Beginning of Year 1/Year 3",
-      `e_seg_new` = "End of Year 2/Year 4",
-      .default = NA_character_
-    ),
-    reservation = dplyr::recode(reservation, `0` = "Non-reservation", `1` = "Reservation", .default = NA_character_)
-  ) %>%
-  ggplot(aes(seg_studymate, stat(density), fill = factor(reservation))) +
-  geom_density(alpha = 0.5) +
-  geom_vline(data = df2, aes(xintercept = mean, color = factor(reservation)), linetype = "dashed", size = 1, show.legend = F) +
-  theme_bw() +
-  facet_grid(vars(elite), vars(survey)) +
-  labs(
-    x = "Segregation",
-    y = "Density",
-    fill = "Reservation Status"
-  )
+# df2 <-
+#   df %>% 
+#   select(starts_with(c("b_seg_new", "e_seg_new")), elite, reservation) %>%
+#   drop_na(reservation) %>%
+#   mutate(
+#     elite = factor(elite, labels = c("Non-elite", "Elite"))
+#   ) %>%
+#   pivot_longer(
+#     cols = contains("seg_"),
+#     names_to = "survey",
+#     values_to = "seg_studymate",
+#     values_drop_na = TRUE
+#   ) %>% 
+#   mutate(
+#     survey = dplyr::recode(
+#       survey,
+#       `b_seg_new` = "Beginning of Year 1/Year 3",
+#       `e_seg_new` = "End of Year 2/Year 4",
+#       .default = NA_character_
+#     )
+#   ) %>% 
+#   group_by(elite, survey, reservation) %>% 
+#   summarize(
+#     mean = median(seg_studymate, na.rm = T)
+#   )
+# 
+# df %>%
+#   select(starts_with(c("b_seg_new", "e_seg_new")), elite, reservation) %>%
+#   drop_na(reservation) %>%
+#   mutate(
+#     elite = factor(elite, labels = c("Non-elite", "Elite"))
+#   ) %>%
+#   pivot_longer(
+#     cols = contains("seg_"),
+#     names_to = "survey",
+#     values_to = "seg_studymate",
+#     values_drop_na = TRUE
+#   ) %>%
+#   mutate(
+#     survey = dplyr::recode(
+#       survey,
+#       `b_seg_new` = "Beginning of Year 1/Year 3",
+#       `e_seg_new` = "End of Year 2/Year 4",
+#       .default = NA_character_
+#     ),
+#     reservation = dplyr::recode(reservation, `0` = "Non-reservation", `1` = "Reservation", .default = NA_character_)
+#   ) %>%
+#   ggplot(aes(seg_studymate, stat(density), fill = factor(reservation))) +
+#   geom_density(alpha = 0.5) +
+#   geom_vline(data = df2, aes(xintercept = mean, color = factor(reservation)), linetype = "dashed", size = 1, show.legend = F) +
+#   theme_bw() +
+#   facet_grid(vars(elite), vars(survey)) +
+#   labs(
+#     x = "Segregation",
+#     y = "Density",
+#     fill = "Reservation Status"
+#   )
 ```
 
 
@@ -312,9 +331,11 @@ df %>%
   theme(legend.position = "bottom") +
   labs(
     x = "Year",
-    y = "Segregation (log odds)",
-    fill = "Reservation status"
+    y = "Segregation (SD units)",
+    fill = "Student Reservation Status"
   )
+
+ggsave("report/figure.png")
 ```
 
 
@@ -325,9 +346,11 @@ df %>%
 df %>% 
   select(stdid, contains("seg_new"), reservation, grade) %>%
   drop_na(reservation) %>% 
+  filter(grade == 2) %>%
+  mutate_at(vars(contains("seg")), ~ scale(.) %>% as.vector) %>% 
   pivot_longer(cols = contains("seg"), names_to = "endline", values_to = "seg") %>% 
   mutate(endline = dplyr::recode(endline, "b_seg_new" = "0", "e_seg_new" = "1") %>% as.integer()) %>%
-  filter(grade == 4, reservation == 1) %>% 
+  filter(reservation == 0) %>% 
   lm(seg ~ endline, data = .) %>% 
   summary()
 
@@ -335,9 +358,11 @@ df %>%
 df %>% 
   select(stdid, contains("seg_new"), reservation, elite, grade) %>%
   drop_na(reservation) %>% 
+  filter(grade == 4) %>% 
+  mutate_at(vars(contains("seg")), ~ scale(.) %>% as.vector) %>%
   pivot_longer(cols = contains("seg"), names_to = "endline", values_to = "seg") %>% 
   mutate(endline = dplyr::recode(endline, "b_seg_new" = "0", "e_seg_new" = "1") %>% as.integer()) %>%
-  filter(reservation == 1, grade == 4, elite == 0) %>% 
+  filter(reservation == 1, elite == 0) %>% 
   lm(seg ~ endline, data = .) %>% 
   summary()
 ```
@@ -349,9 +374,9 @@ df %>%
 ```{r, message = F, warning = F}
 # by res
 df %>% 
-  select(stdid, contains("z_seg_g"), reservation) %>%
+  select(stdid, univcode, contains("z_seg_g"), reservation) %>%
   drop_na(reservation) %>% 
-  lm(z_seg_g4 ~ reservation, data = .) %>% 
+  lm_robust(z_seg_g4 ~ reservation, data = ., clusters = univcode) %>% 
   summary()
 
 # by res, elite
@@ -495,85 +520,70 @@ stargazer(
 ### Elite (Y1 to Y2)
 
 ```{r, warning=FALSE, results="hide"}
-lm2_r <- 
+lm1_r <- 
   lm(
     z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 1, elite == 1)
+  )
+
+lm1_nr <- 
+  lm(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 0, elite == 1)
+  )
+
+lm2_r <- 
+  lm(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
     data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm2_nr <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
     data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm3_r <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3, 
     data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm3_nr <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3, 
     data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm4_r <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3 + ea_scstcell_yn, 
     data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm4_nr <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3 + ea_scstcell_yn, 
     data = df %>% filter(reservation == 0, elite == 1)
   )
-
-lm5_r <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3, 
-    data = df %>% filter(reservation == 1, elite == 1)
-  )
-
-lm5_nr <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3, 
-    data = df %>% filter(reservation == 0, elite == 1)
-  )
-
-lm6_r <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3 + ea_scstcell_yn, 
-    data = df %>% filter(reservation == 1, elite == 1)
-  )
-
-lm6_nr <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3 + ea_scstcell_yn, 
-    data = df %>% filter(reservation == 0, elite == 1)
-  )
-
 
 
 rob_se <-
   list(
+    sqrt(diag(vcovHC(lm1_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm2_r, type = "HC1"))),
     sqrt(diag(vcovHC(lm2_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm3_r, type = "HC1"))),
     sqrt(diag(vcovHC(lm3_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm4_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm4_nr, type = "HC1"))),
-    sqrt(diag(vcovHC(lm5_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm5_nr, type = "HC1"))),
-    sqrt(diag(vcovHC(lm6_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm6_nr, type = "HC1")))
+    sqrt(diag(vcovHC(lm4_nr, type = "HC1")))
   )
 
 
 stargazer(
-  lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, lm6_r, lm6_nr,
+  lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr,
   se = rob_se,
   title = "Table 7: Policy effects on segregation from year 1 to year 2 at selective colleges",
   header = F,
@@ -581,8 +591,8 @@ stargazer(
   model.numbers = F,
   dep.var.caption  = "Segregation - End of year 2 (by student reservation status)",
   dep.var.labels.include  = F,
-  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Diverse hostels", "Integration courses", "Extra-curricular activities", "Mentoring programs", "SC/ST Cell established", "Constant"),
+  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
+  covariate.labels = c("Diverse hostels", "Integration courses", "Mentoring programs", "SC/ST Cell established", "Constant"),
   keep = c("ea_", "Constant"),
   keep.stat = c("n"),
   type = "html",
@@ -599,85 +609,71 @@ stargazer(
 ### Non-elite (Y1 to Y2)
 
 ```{r, warning=FALSE, results="hide"}
-lm2_r <- 
+lm1_r <- 
   lm(
     z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 1, elite == 0)
+  )
+  
+
+lm1_nr <- 
+  lm(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 0, elite == 0)
+  )
+
+lm2_r <- 
+  lm(
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
     data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm2_nr <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
     data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm3_r <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3, 
     data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm3_nr <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3, 
     data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm4_r <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3 + ea_scstcell_yn, 
     data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm4_nr <- 
   lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2, 
+    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3 + ea_scstcell_yn, 
     data = df %>% filter(reservation == 0, elite == 0)
   )
-
-lm5_r <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3, 
-    data = df %>% filter(reservation == 1, elite == 0)
-  )
-
-lm5_nr <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3, 
-    data = df %>% filter(reservation == 0, elite == 0)
-  )
-
-lm6_r <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3 + ea_scstcell_yn, 
-    data = df %>% filter(reservation == 1, elite == 0)
-  )
-
-lm6_nr <- 
-  lm(
-    z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3 + ea_scstcell_yn, 
-    data = df %>% filter(reservation == 0, elite == 0)
-  )
-
 
 
 rob_se <-
   list(
+    sqrt(diag(vcovHC(lm1_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm2_r, type = "HC1"))),
     sqrt(diag(vcovHC(lm2_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm3_r, type = "HC1"))),
     sqrt(diag(vcovHC(lm3_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm4_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm4_nr, type = "HC1"))),
-    sqrt(diag(vcovHC(lm5_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm5_nr, type = "HC1"))),
-    sqrt(diag(vcovHC(lm6_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm6_nr, type = "HC1")))
+    sqrt(diag(vcovHC(lm4_nr, type = "HC1")))
   )
 
 
 stargazer(
-  lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, lm6_r, lm6_nr,
+  lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr,
   se = rob_se,
   title = "Table 8: Policy effects on segregation from year 1 to year 2 at non-selective colleges",
   header = F,
@@ -685,8 +681,8 @@ stargazer(
   model.numbers = F,
   dep.var.caption  = "Segregation - End of year 2 (by student reservation status)",
   dep.var.labels.include  = F,
-  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Diverse hostels", "Integration courses", "Extra-curricular activities", "Mentoring programs", "SC/ST Cell established", "Constant"),
+  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
+  covariate.labels = c("Diverse hostels", "Integration courses", "Mentoring programs", "SC/ST Cell established", "Constant"),
   keep = c("ea_", "Constant"),
   keep.stat = c("n"),
   type = "html",
@@ -767,7 +763,7 @@ rob_se <-
 stargazer(
   lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr,
   se = rob_se,
-  title = "Table 7: Policy effects on segregation from year 3 to year 4",
+  title = "Table 9: Policy effects on segregation from year 3 to year 4",
   header = F,
   digits = 2,
   model.numbers = F,
@@ -787,88 +783,74 @@ stargazer(
 ```
 
 
+
 ### Elite (Y3 to Y4)
 
 ```{r, warning=FALSE, results="hide"}
-lm2_r <- 
+lm1_r <- 
   lm(
     z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 1, elite == 1)
+  )
+
+lm1_nr <- 
+  lm(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 0, elite == 1)
+  )
+
+lm2_r <- 
+  lm(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
     data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm2_nr <- 
   lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
     data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm3_r <- 
   lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3, 
     data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm3_nr <- 
   lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3, 
     data = df %>% filter(reservation == 0, elite == 1)
   )
 
 lm4_r <- 
   lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3 + ea_scstcell_yn, 
     data = df %>% filter(reservation == 1, elite == 1)
   )
 
 lm4_nr <- 
   lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2, 
-    data = df %>% filter(reservation == 0, elite == 1)
-  )
-
-lm5_r <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3, 
-    data = df %>% filter(reservation == 1, elite == 1)
-  )
-
-lm5_nr <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3, 
-    data = df %>% filter(reservation == 0, elite == 1)
-  )
-
-
-lm6_r <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3 + ea_scstcell_yn, 
-    data = df %>% filter(reservation == 1, elite == 1)
-  )
-
-lm6_nr <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3 + ea_scstcell_yn, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3 + ea_scstcell_yn, 
     data = df %>% filter(reservation == 0, elite == 1)
   )
 
 
 rob_se <-
   list(
+    sqrt(diag(vcovHC(lm1_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm2_r, type = "HC1"))),
     sqrt(diag(vcovHC(lm2_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm3_r, type = "HC1"))),
     sqrt(diag(vcovHC(lm3_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm4_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm4_nr, type = "HC1"))),
-    sqrt(diag(vcovHC(lm5_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm5_nr, type = "HC1"))),
-    sqrt(diag(vcovHC(lm6_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm6_nr, type = "HC1")))
+    sqrt(diag(vcovHC(lm4_nr, type = "HC1")))
   )
 
 
 stargazer(
-  lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, lm6_r, lm6_nr,
+  lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr,
   se = rob_se,
   title = "Table 10: Policy effects on segregation from year 3 to year 4 at selective colleges",
   header = F,
@@ -876,8 +858,8 @@ stargazer(
   model.numbers = F,
   dep.var.caption  = "Segregation - End of year 4 (by student reservation status)",
   dep.var.labels.include  = F,
-  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Diverse hostels", "Integration courses", "Extra-curricular activities", "Mentoring programs", "SC/ST Cell established", "Constant"),
+  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
+  covariate.labels = c("Diverse hostels", "Integration courses", "Mentoring programs", "SC/ST Cell established", "Constant"),
   keep = c("ea_", "Constant"),
   keep.stat = c("n"),
   type = "html",
@@ -890,96 +872,84 @@ stargazer(
 ```
 
 
-### Non-elite (Y3 to Y4)
+
+### Non-elite (Y1 to Y2)
 
 ```{r, warning=FALSE, results="hide"}
-lm2_r <- 
+lm1_r <- 
   lm(
     z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 1, elite == 0)
+  )
+  
+
+lm1_nr <- 
+  lm(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    data = df %>% filter(reservation == 0, elite == 0)
+  )
+
+lm2_r <- 
+  lm(
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
     data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm2_nr <- 
   lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
     data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm3_r <- 
   lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3, 
     data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm3_nr <- 
   lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3, 
     data = df %>% filter(reservation == 0, elite == 0)
   )
 
 lm4_r <- 
   lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3 + ea_scstcell_yn, 
     data = df %>% filter(reservation == 1, elite == 0)
   )
 
 lm4_nr <- 
   lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2, 
-    data = df %>% filter(reservation == 0, elite == 0)
-  )
-
-lm5_r <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3, 
-    data = df %>% filter(reservation == 1, elite == 0)
-  )
-
-lm5_nr <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3, 
-    data = df %>% filter(reservation == 0, elite == 0)
-  )
-
-lm6_r <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3 + ea_scstcell_yn, 
-    data = df %>% filter(reservation == 1, elite == 0)
-  )
-
-lm6_nr <- 
-  lm(
-    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students2 + ea_polic_integration_students3 + ea_scstcell_yn, 
+    z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + ea_polic_integration_students4 + ea_polic_integration_students6 + ea_polic_integration_students3 + ea_scstcell_yn, 
     data = df %>% filter(reservation == 0, elite == 0)
   )
 
 
 rob_se <-
   list(
+    sqrt(diag(vcovHC(lm1_r, type = "HC1"))),
+    sqrt(diag(vcovHC(lm1_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm2_r, type = "HC1"))),
     sqrt(diag(vcovHC(lm2_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm3_r, type = "HC1"))),
     sqrt(diag(vcovHC(lm3_nr, type = "HC1"))),
     sqrt(diag(vcovHC(lm4_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm4_nr, type = "HC1"))),
-    sqrt(diag(vcovHC(lm5_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm5_nr, type = "HC1"))),
-    sqrt(diag(vcovHC(lm6_r, type = "HC1"))),
-    sqrt(diag(vcovHC(lm6_nr, type = "HC1")))
+    sqrt(diag(vcovHC(lm4_nr, type = "HC1")))
   )
 
 
 stargazer(
-  lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr, lm5_r, lm5_nr, lm6_r, lm6_nr,
+  lm1_r, lm1_nr, lm2_r, lm2_nr, lm3_r, lm3_nr, lm4_r, lm4_nr,
   se = rob_se,
-  title = "Table 11: Policy effects on segregation from year 3 to year 4 at non-selective colleges",
+  title = "Table 8: Policy effects on segregation from year 3 to year 4 at non-selective colleges",
   header = F,
   digits = 2,
   model.numbers = F,
   dep.var.caption  = "Segregation - End of year 4 (by student reservation status)",
   dep.var.labels.include  = F,
-  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
-  covariate.labels = c("Diverse hostels", "Integration courses", "Extra-curricular activities", "Mentoring programs", "SC/ST Cell established", "Constant"),
+  column.labels   = c("Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation", "Reservation", "Non-reservation"),
+  covariate.labels = c("Diverse hostels", "Integration courses", "Mentoring programs", "SC/ST Cell established", "Constant"),
   keep = c("ea_", "Constant"),
   keep.stat = c("n"),
   type = "html",
@@ -990,7 +960,6 @@ stargazer(
   )
 )
 ```
-
 
 
 

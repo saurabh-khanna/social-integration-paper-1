@@ -210,45 +210,29 @@ seg_scores %>%
 ## Mechanisms
 
 ```{r, message = F, warning = F, fig.retina=4}
-read_rds(here::here("data/stu_admin_all_with_netvars.Rds")) %>% 
+lm1 <-
+  read_rds(here::here("data/stu_admin_all_with_netvars.Rds")) %>% 
   select(stdid, contains("reciprocity"), contains("transitivity"), contains("homophily")) %>% 
   mutate(
-    diff_reciprocity = e_reciprocity - b_reciprocity,
-    diff_transitivity = e_transitivity - b_transitivity
+    diff_reciprocity = (e_reciprocity - b_reciprocity) %>% scale() %>% as.vector(),
+    diff_transitivity = (e_transitivity - b_transitivity) %>% scale() %>% as.vector()
   ) %>%
   inner_join(seg_scores, by = "stdid") %>% 
-  mutate(
-    reservation = factor(reservation, labels = c("Non-reservation", "Reservation"))
-  ) %>%
-  ggplot(aes(stu_diversity, diff_reciprocity)) +
-  geom_smooth(method = "loess", span = 0.8) +
-  geom_smooth(method = "lm", linetype = "dashed", color = "red", se = F) +
-  hrbrthemes::theme_ipsum() +
-  labs(
-    x = "Diversity of classmates",
-    y = "Change in reciprocity",
-    caption = "All values reported in standard deviation units."
-  )
+  lm_robust(diff_reciprocity ~ stu_diversity + female + score + age + hs_private + ses + father_college + b_seg_new, data = ., clusters = classid, se_type = "stata")
 
-read_rds(here::here("data/stu_admin_all_with_netvars.Rds")) %>% 
+lm2 <-
+  read_rds(here::here("data/stu_admin_all_with_netvars.Rds")) %>% 
   select(stdid, contains("reciprocity"), contains("transitivity"), contains("homophily")) %>% 
   mutate(
-    diff_reciprocity = e_reciprocity - b_reciprocity,
-    diff_transitivity = e_transitivity - b_transitivity
+    diff_reciprocity = (e_reciprocity - b_reciprocity) %>% scale() %>% as.vector(),
+    diff_transitivity = (e_transitivity - b_transitivity) %>% scale() %>% as.vector()
   ) %>%
   inner_join(seg_scores, by = "stdid") %>% 
-  mutate(
-    reservation = factor(reservation, labels = c("Non-reservation", "Reservation"))
-  ) %>%
-  ggplot(aes(stu_diversity, diff_transitivity)) +
-  geom_smooth(method = "loess", span = 0.9) +
-  geom_smooth(method = "lm", linetype = "dashed", color = "red", se = F) +
-  hrbrthemes::theme_ipsum() +
-  labs(
-    x = "Diversity of classmates",
-    y = "Change in transitivity",
-    caption = "All values reported in standard deviation units."
-  )
+  lm_robust(diff_transitivity ~ stu_diversity + female + score + age + hs_private + ses + father_college + b_seg_new, data = ., clusters = classid, se_type = "stata")
+
+
+texreg::screenreg(list(lm1, lm2), custom.note = "%stars \n All models control for department-year fixed effects.", omit.coef = "(female)|(score)|(ther)|(area)|(ses)|(hstype)|(age)|(official)|(school)|(seg)", stars = c(0.01, 0.05, 0.1), include.ci = FALSE)
+
 ```
 
 
