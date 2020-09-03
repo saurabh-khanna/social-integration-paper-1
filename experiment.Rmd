@@ -149,27 +149,33 @@ tidy(lm2) %>% select(term, estimate, p.value) %>% mutate_at(vars(estimate, p.val
 ```{r, results = "asis"}
 lm1 <-
   seg_scores %>%
-  filter(reservation == 1, elite == 0) %>% 
-  lm_robust(e_seg_new ~ stu_diversity + female + score + age + hs_private + ses + father_college + b_seg_new, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+  filter(reservation == 1) %>% 
+  lm_robust(e_seg_new ~ stu_diversity + female + age + score + b_seg_new + ses + hs_private + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
 lm2 <-
   seg_scores %>%
-  filter(reservation == 0, elite == 0) %>% 
-  lm_robust(e_seg_new ~ stu_diversity + female + score + age + hs_private + ses + father_college + b_seg_new, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+  filter(reservation == 0) %>% 
+  lm_robust(e_seg_new ~ stu_diversity + female + age + score + b_seg_new + ses + hs_private + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
 lm3 <-
   seg_scores %>%
-  filter(reservation == 1, elite == 0) %>% 
-  lm_robust(e_seg_new ~ fac_diversity + female + score + age + hs_private + ses + father_college + b_seg_new, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+  filter(reservation == 1) %>% 
+  lm_robust(e_seg_new ~ fac_diversity + female + age + score + b_seg_new + ses + hs_private + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
 lm4 <-
   seg_scores %>%
-  filter(reservation == 0, elite == 0) %>% 
-  lm_robust(e_seg_new ~ fac_diversity + female + score + age + hs_private + ses + father_college + b_seg_new, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+  filter(reservation == 0) %>% 
+  lm_robust(e_seg_new ~ fac_diversity + female + age + score + b_seg_new + ses + hs_private + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
-texreg::screenreg(list(lm1, lm2, lm3, lm4), custom.note = "%stars \n All models control for department-year fixed effects.", omit.coef = "(female)|(score)|(college)|(school)|(ses)|(seg)|(age)|(hs)", stars = c(0.01, 0.05, 0.1), include.ci = FALSE)
+texreg::screenreg(list(lm1, lm2, lm3, lm4), custom.note = "%stars \n All models control for department-year fixed effects.", omit.coef = "(female)|(score)|(college)|(school)|(ses)|(seg)|(age)|(hs)", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, custom.model.names = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"))
 ```
 
+```{r}
+#Interacting on reservation status
+seg_scores %>%
+  lm_robust(e_seg_new ~ stu_diversity * reservation, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata") %>% 
+  texreg::screenreg(include.ci = FALSE)
+```
 
 
 

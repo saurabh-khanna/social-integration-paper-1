@@ -1,73 +1,24 @@
-<table class="texreg" style="margin: 10px auto;border-collapse: collapse;border-spacing: 0px;caption-side: bottom;color: #000000;border-top: 2px solid #000000;">
-<caption>Statistical models</caption>
-<thead>
-<tr>
-<th style="padding-left: 5px;padding-right: 5px;">&nbsp;</th>
-<th style="padding-left: 5px;padding-right: 5px;">Model 1</th>
-<th style="padding-left: 5px;padding-right: 5px;">Model 2</th>
-</tr>
-</thead>
-<tbody>
-<tr style="border-top: 1px solid #000000;">
-<td style="padding-left: 5px;padding-right: 5px;">(Intercept)</td>
-<td style="padding-left: 5px;padding-right: 5px;">2.81<sup>*</sup></td>
-<td style="padding-left: 5px;padding-right: 5px;">0.86</td>
-</tr>
-<tr>
-<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
-<td style="padding-left: 5px;padding-right: 5px;">(1.42)</td>
-<td style="padding-left: 5px;padding-right: 5px;">(1.30)</td>
-</tr>
-<tr>
-<td style="padding-left: 5px;padding-right: 5px;">stu_diversity</td>
-<td style="padding-left: 5px;padding-right: 5px;">0.19<sup>***</sup></td>
-<td style="padding-left: 5px;padding-right: 5px;">0.15<sup>**</sup></td>
-</tr>
-<tr>
-<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
-<td style="padding-left: 5px;padding-right: 5px;">(0.07)</td>
-<td style="padding-left: 5px;padding-right: 5px;">(0.06)</td>
-</tr>
-<tr>
-<td style="padding-left: 5px;padding-right: 5px;">hs_private</td>
-<td style="padding-left: 5px;padding-right: 5px;">0.18</td>
-<td style="padding-left: 5px;padding-right: 5px;">0.22<sup>*</sup></td>
-</tr>
-<tr>
-<td style="padding-left: 5px;padding-right: 5px;">&nbsp;</td>
-<td style="padding-left: 5px;padding-right: 5px;">(0.14)</td>
-<td style="padding-left: 5px;padding-right: 5px;">(0.13)</td>
-</tr>
-<tr style="border-top: 1px solid #000000;">
-<td style="padding-left: 5px;padding-right: 5px;">R<sup>2</sup></td>
-<td style="padding-left: 5px;padding-right: 5px;">0.09</td>
-<td style="padding-left: 5px;padding-right: 5px;">0.04</td>
-</tr>
-<tr>
-<td style="padding-left: 5px;padding-right: 5px;">Adj. R<sup>2</sup></td>
-<td style="padding-left: 5px;padding-right: 5px;">0.09</td>
-<td style="padding-left: 5px;padding-right: 5px;">0.04</td>
-</tr>
-<tr>
-<td style="padding-left: 5px;padding-right: 5px;">Num. obs.</td>
-<td style="padding-left: 5px;padding-right: 5px;">3918</td>
-<td style="padding-left: 5px;padding-right: 5px;">3501</td>
-</tr>
-<tr>
-<td style="padding-left: 5px;padding-right: 5px;">RMSE</td>
-<td style="padding-left: 5px;padding-right: 5px;">1.10</td>
-<td style="padding-left: 5px;padding-right: 5px;">1.09</td>
-</tr>
-<tr style="border-bottom: 2px solid #000000;">
-<td style="padding-left: 5px;padding-right: 5px;">N Clusters</td>
-<td style="padding-left: 5px;padding-right: 5px;">37</td>
-<td style="padding-left: 5px;padding-right: 5px;">37</td>
-</tr>
-</tbody>
-<tfoot>
-<tr>
-<td style="font-size: 0.8em;" colspan="3"><sup>***</sup>p &lt; 0.01; <sup>**</sup>p &lt; 0.05; <sup>*</sup>p &lt; 0.1 
- All models control for department-year fixed effects.</td>
-</tr>
-</tfoot>
+
+<table style="text-align:center"><caption><strong>Table 9: Policy effects on segregation from year 3 to year 4</strong></caption>
+<tr><td colspan="9" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"></td><td colspan="8">Segregation - End of year 4 (by student reservation status)</td></tr>
+<tr><td></td><td colspan="8" style="border-bottom: 1px solid black"></td></tr>
+<tr><td style="text-align:left"></td><td>Reservation</td><td>Non-reservation</td><td>Reservation</td><td>Non-reservation</td><td>Reservation</td><td>Non-reservation</td><td>Reservation</td><td>Non-reservation</td></tr>
+<tr><td colspan="9" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Diverse hostels</td><td>-0.03</td><td>-0.19<sup>***</sup></td><td>-0.04</td><td>-0.17<sup>***</sup></td><td>-0.03</td><td>-0.17<sup>***</sup></td><td>-0.03</td><td>-0.16<sup>***</sup></td></tr>
+<tr><td style="text-align:left"></td><td>(0.04)</td><td>(0.04)</td><td>(0.04)</td><td>(0.04)</td><td>(0.04)</td><td>(0.04)</td><td>(0.04)</td><td>(0.04)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td style="text-align:left">Mentoring programs</td><td></td><td></td><td>0.05</td><td>-0.10<sup>**</sup></td><td>0.07<sup>*</sup></td><td>-0.10<sup>**</sup></td><td>0.08<sup>*</sup></td><td>-0.09<sup>*</sup></td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td>(0.04)</td><td>(0.04)</td><td>(0.04)</td><td>(0.05)</td><td>(0.04)</td><td>(0.05)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td style="text-align:left">Integration courses</td><td></td><td></td><td></td><td></td><td>-0.07<sup>*</sup></td><td>-0.01</td><td>-0.07<sup>*</sup></td><td>-0.01</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td>(0.04)</td><td>(0.04)</td><td>(0.04)</td><td>(0.04)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td style="text-align:left">Diversity office</td><td></td><td></td><td></td><td></td><td></td><td></td><td>-0.02</td><td>-0.08<sup>*</sup></td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td><td>(0.04)</td><td>(0.04)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td style="text-align:left">Constant</td><td>0.03</td><td>0.001</td><td>0.01</td><td>0.06</td><td>0.02</td><td>0.07</td><td>0.03</td><td>0.11</td></tr>
+<tr><td style="text-align:left"></td><td>(0.08)</td><td>(0.09)</td><td>(0.09)</td><td>(0.10)</td><td>(0.09)</td><td>(0.10)</td><td>(0.09)</td><td>(0.10)</td></tr>
+<tr><td style="text-align:left"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td colspan="9" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left">Observations</td><td>3,113</td><td>2,786</td><td>3,113</td><td>2,786</td><td>3,113</td><td>2,786</td><td>3,083</td><td>2,770</td></tr>
+<tr><td colspan="9" style="border-bottom: 1px solid black"></td></tr><tr><td style="text-align:left"><em>Note:</em></td><td colspan="8" style="text-align:right"><sup>*</sup>p<0.1; <sup>**</sup>p<0.05; <sup>***</sup>p<0.01</td></tr>
+<tr><td style="text-align:left"></td><td colspan="8" style="text-align:right">All models control for student's baseline segregation, baseline achievement, gender, socioeconomic status, age, home neighborhood, high school type, years studied in an English medium school, parents' education, and proportion of seats officially reserved for students and faculty.</td></tr>
 </table>
