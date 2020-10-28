@@ -162,7 +162,7 @@ df %>%
 
 ## Segregation plots
 
-```{r fig.retina=4}
+```{r fig.retina=4, fig.asp=1.25}
 df2 <-
   df %>% 
   select(reservation, starts_with("z_seg")) %>% 
@@ -202,7 +202,7 @@ df %>%
   ggplot(aes(segregation, stat(density), fill = factor(reservation))) +
   geom_density(alpha = 0.5) +
   geom_vline(data = df2, aes(xintercept = median, color = factor(reservation)), linetype = "dashed", size = 1, show.legend = F) +
-  facet_wrap(vars(year)) +
+  facet_wrap(vars(year), ncol=1) +
   theme(legend.position = "bottom") +
   labs(
     x = "Segregation (SD units)",

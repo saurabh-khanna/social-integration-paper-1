@@ -1,0 +1,285 @@
+---
+title: "Multilevel models for desegregation paper"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 4
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, out.width="100%")
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Libraries
+pacman::p_load(tidyverse, haven, lme4, stargazer, texreg, AER, performance, knitr)
+
+# Parameters
+data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
+trends_file <- here::here("data/trends.csv")
+newscores_file <- here::here("data/new_scoring/friends/newscores.Rds")
+fac_res_file <- here::here("data/fac_res_prop.csv")
+```
+
+
+```{r, message=F, warning=F, echo=F}
+df <-
+  data_file %>%
+  read_rds() %>% 
+  #filter(stu_merge == 3) %>% 
+  mutate_at(vars(contains("ea_seats_reser")), replace_na, replace = 0) %>% 
+  left_join(read_rds(newscores_file), by = "stdid") %>% 
+  left_join(read_csv(fac_res_file), by = "department_id") %>% 
+  mutate(
+    female = gender - 1,
+    age = 2017 - lubridate::year(b_birthdate),
+    reservation = dplyr::recode(reservation, "Non-reservation" = 0L, "Reservation" = 1L, .default = NA_integer_),
+    stu_res_official = (ea_seats_reserved_students_obc + ea_seats_reserved_students_sc + ea_seats_reserved_students_st) / 100,
+    fac_res_official = (ea_seats_reserved_faculty_obc + ea_seats_reserved_faculty_sc + ea_seats_reserved_faculty_st) / 100,
+    z_seg_g1 = if_else(grade == 2, b_seg_new, NA_real_),
+    z_seg_g2 = if_else(grade == 2, e_seg_new, NA_real_),
+    z_seg_g3 = if_else(grade == 4, b_seg_new, NA_real_),
+    z_seg_g4 = if_else(grade == 4, e_seg_new, NA_real_)
+  ) 
+
+baseline_achievement <-
+  df %>%
+  select(classid, stdid, b_math_g1_score, b_math_g3_score, b_physics_g1_score, b_physics_g3_score, b_ct_score, b_ql_score, b_rr_score) %>% 
+  group_by(classid) %>% 
+  mutate_at(vars(ends_with("score")), ~ scale(.) %>% pnorm()) %>% 
+  ungroup() %>% 
+  transmute(
+    stdid,
+    b_score =
+      pmap_dbl(
+        select(., ends_with("score")),
+        ~ mean(c(...), na.rm = TRUE)
+      )
+  )
+
+df <-
+  df %>% 
+  left_join(
+    df %>% 
+      group_by(department_id) %>% 
+      summarize(stu_res_actual = mean(reservation, na.rm = TRUE)),
+    by = "department_id"
+  ) %>%
+  mutate_at(
+    vars(starts_with(c("stu_res_", "fac_res_", "z_seg_g")), b_seg_new, e_seg_new, age),
+    ~ scale(.) %>% as.vector
+  ) %>% 
+  left_join(baseline_achievement, by = "stdid") %>% 
+  rename(
+    diverse_dorms = ea_polic_integration_students4,
+    mentoring_programs = ea_polic_integration_students3,
+    integration_courses = ea_polic_integration_students6,
+    diversity_office = ea_staff_strength_scsctcell
+  ) %>% 
+  mutate(
+    diversity_office = if_else(diversity_office > 0 & !is.na(diversity_office), 1, diversity_office) %>% as.integer()
+  )
+```
+
+
+## Levels
+
+*Department &#8594; Student*
+
+Glimpse of how the data is structured:
+
+```{r, echo=F}
+df %>% 
+  arrange(-stu_merge, department_id, stdid) %>%
+  select(department_id, stdid, grade, reservation, contains("z_seg_g"))
+```
+
+
+## Null model
+
+### Model summary
+
+```{r, results="asis"}
+lm1.1 <- lmer(z_seg_g2 ~ 1 + (1 | department_id), data = df %>% filter(reservation == 1))
+lm1.2 <- lmer(z_seg_g2 ~ 1 + (1 | department_id), data = df %>% filter(reservation == 0))
+lm1.3 <- lmer(z_seg_g4 ~ 1 + (1 | department_id), data = df %>% filter(reservation == 1))
+lm1.4 <- lmer(z_seg_g4 ~ 1 + (1 | department_id), data = df %>% filter(reservation == 0))
+
+knitreg(list(lm1.1, lm1.2, lm1.3, lm1.4), custom.note = "%stars", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, include.variance = TRUE, custom.model.names = c("Cohort 1 Res", "Cohort 1 Non-res", "Cohort 2 Res", "Cohort 2 Non-res"))
+```
+
+
+### Model ICC
+
+```{r}
+bind_rows(
+  icc(lm1.1, by_group = T),
+  icc(lm1.2, by_group = T),
+  icc(lm1.3, by_group = T),
+  icc(lm1.4, by_group = T),
+  .id = "model"
+) %>% 
+  pivot_wider(names_from = model, values_from = ICC) %>% 
+  select(level = Group, "Cohort 1 Res" = "1", "Cohort 1 Non-res" = "2", "Cohort 2 Res" = "3", "Cohort 2 Non-res" =  "4") %>%
+  kable()
+```
+
+
+## Adding student level predictors
+
+### Model summary
+
+```{r, results="asis"}
+lm2.1 <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + (1 | department_id), data = df %>% filter(reservation == 1))
+
+lm2.2 <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + (1 | department_id), data = df %>% filter(reservation == 0))
+
+lm2.3 <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + (1 | department_id), data = df %>% filter(reservation == 1))
+
+lm2.4 <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + (1 | department_id), data = df %>% filter(reservation == 0))
+
+knitreg(list(lm2.1, lm2.2, lm2.3, lm2.4), custom.note = "%stars", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, include.variance = TRUE, custom.model.names = c("Cohort 1 Res", "Cohort 1 Non-res", "Cohort 2 Res", "Cohort 2 Non-res"))
+```
+
+
+### Model ICC
+
+```{r}
+bind_rows(
+  icc(lm2.1, by_group = T),
+  icc(lm2.2, by_group = T),
+  icc(lm2.3, by_group = T),
+  icc(lm2.4, by_group = T),
+  .id = "model"
+) %>% 
+  pivot_wider(names_from = model, values_from = ICC) %>% 
+  select(level = Group, "Cohort 1 Res" = "1", "Cohort 1 Non-res" = "2", "Cohort 2 Res" = "3", "Cohort 2 Non-res" =  "4") %>% 
+  kable()
+```
+
+
+## Adding department level predictors
+
+### Model summary
+
+```{r, results="asis"}
+lm3.1 <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diverse_dorms + mentoring_programs + integration_courses + diversity_office + (1 | department_id), data = df %>% filter(reservation == 1))
+
+lm3.2 <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diverse_dorms + mentoring_programs + integration_courses + diversity_office + (1 | department_id), data = df %>% filter(reservation == 0))
+
+lm3.3 <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diverse_dorms + mentoring_programs + integration_courses + diversity_office + (1 | department_id), data = df %>% filter(reservation == 1))
+
+lm3.4 <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diverse_dorms + mentoring_programs + integration_courses + diversity_office + (1 | department_id), data = df %>% filter(reservation == 0))
+
+knitreg(list(lm3.1, lm3.2, lm3.3, lm3.4), custom.note = "%stars", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, include.variance = TRUE, custom.model.names = c("Cohort 1 Res", "Cohort 1 Non-res", "Cohort 2 Res", "Cohort 2 Non-res"), omit.coef = "(female)|(b_score)|(ther_ed)|(area)|(^ses)|(hstype)|(age)|(official)|(school)|(seg)")
+```
+
+
+### Model ICC
+
+```{r}
+bind_rows(
+  icc(lm3.1, by_group = T),
+  icc(lm3.2, by_group = T),
+  icc(lm3.3, by_group = T),
+  icc(lm3.4, by_group = T),
+  .id = "model"
+) %>% 
+  pivot_wider(names_from = model, values_from = ICC) %>% 
+  select(level = Group, "Cohort 1 Res" = "1", "Cohort 1 Non-res" = "2", "Cohort 2 Res" = "3", "Cohort 2 Non-res" =  "4") %>% 
+  kable()
+```
+
+
+## Adding random slope
+
+### Diverse Dorms
+
+```{r, results="asis"}
+lm4.1a <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diverse_dorms + (1 + diverse_dorms | department_id), data = df %>% filter(reservation == 1))
+
+lm4.2a <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diverse_dorms + (1 + diverse_dorms | department_id), data = df %>% filter(reservation == 0))
+
+lm4.3a <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diverse_dorms + (1 + diverse_dorms | department_id), data = df %>% filter(reservation == 1))
+
+lm4.4a <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diverse_dorms + (1 + diverse_dorms | department_id), data = df %>% filter(reservation == 0))
+
+knitreg(list(lm4.1a, lm4.2a, lm4.3a, lm4.4a), custom.note = "%stars", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, include.variance = TRUE, custom.model.names = c("Cohort 1 Res", "Cohort 1 Non-res", "Cohort 2 Res", "Cohort 2 Non-res"), omit.coef = "(female)|(b_score)|(ther_ed)|(area)|(^ses)|(hstype)|(age)|(official)|(school)|(seg)")
+```
+
+
+### Mentoring Programs
+
+```{r, results="asis"}
+lm4.1b <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + mentoring_programs + (1 + mentoring_programs | department_id), data = df %>% filter(reservation == 1))
+
+lm4.2b <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + mentoring_programs + (1 + mentoring_programs | department_id), data = df %>% filter(reservation == 0))
+
+lm4.3b <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + mentoring_programs + (1 + mentoring_programs | department_id), data = df %>% filter(reservation == 1))
+
+lm4.4b <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + mentoring_programs + (1 + mentoring_programs | department_id), data = df %>% filter(reservation == 0))
+
+knitreg(list(lm4.1b, lm4.2b, lm4.3b, lm4.4b), custom.note = "%stars", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, include.variance = TRUE, custom.model.names = c("Cohort 1 Res", "Cohort 1 Non-res", "Cohort 2 Res", "Cohort 2 Non-res"), omit.coef = "(female)|(b_score)|(ther_ed)|(area)|(^ses)|(hstype)|(age)|(official)|(school)|(seg)")
+```
+
+
+### Integration courses
+
+```{r, results="asis"}
+lm4.1c <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + integration_courses + (1 + integration_courses | department_id), data = df %>% filter(reservation == 1))
+
+lm4.2c <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + integration_courses + (1 + integration_courses | department_id), data = df %>% filter(reservation == 0))
+
+lm4.3c <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + integration_courses + (1 + integration_courses | department_id), data = df %>% filter(reservation == 1))
+
+lm4.4c <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + integration_courses + (1 + integration_courses | department_id), data = df %>% filter(reservation == 0))
+
+knitreg(list(lm4.1c, lm4.2c, lm4.3c, lm4.4c), custom.note = "%stars", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, include.variance = TRUE, custom.model.names = c("Cohort 1 Res", "Cohort 1 Non-res", "Cohort 2 Res", "Cohort 2 Non-res"), omit.coef = "(female)|(b_score)|(ther_ed)|(area)|(^ses)|(hstype)|(age)|(official)|(school)|(seg)")
+```
+
+
+### Divresity Offices
+
+```{r, results="asis"}
+lm4.1d <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diversity_office + (1 + diversity_office | department_id), data = df %>% filter(reservation == 1))
+
+lm4.2d <- lmer(z_seg_g2 ~ z_seg_g1 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diversity_office + (1 + diversity_office | department_id), data = df %>% filter(reservation == 0))
+
+lm4.3d <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diversity_office + (1 + diversity_office | department_id), data = df %>% filter(reservation == 1))
+
+lm4.4d <- lmer(z_seg_g4 ~ z_seg_g3 + female + age + ses + b_score + mother_ed_ind + father_ed_ind + b_i_area + b_eb1_hstype + b_i_school_years_english + stu_res_official + fac_res_official + diversity_office + (1 + diversity_office | department_id), data = df %>% filter(reservation == 0))
+
+knitreg(list(lm4.1d, lm4.2d, lm4.3d, lm4.4d), custom.note = "%stars", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, include.variance = TRUE, custom.model.names = c("Cohort 1 Res", "Cohort 1 Non-res", "Cohort 2 Res", "Cohort 2 Non-res"), omit.coef = "(female)|(b_score)|(ther_ed)|(area)|(^ses)|(hstype)|(age)|(official)|(school)|(seg)")
+```
+
+
+
+## Model comparison
+
+### Cohort 1 reservation
+
+```{r}
+compare_performance(lm1.1, lm2.1, lm3.1, lm4.1a, lm4.1b, lm4.1c, lm4.1d)
+```
+
+### Cohort 1 non-reservation
+
+```{r}
+compare_performance(lm1.2, lm2.2, lm3.2, lm4.2a, lm4.2b, lm4.2c, lm4.2d)
+```
+
+### Cohort 2 reservation
+
+```{r}
+compare_performance(lm1.3, lm2.3, lm3.3, lm4.3a, lm4.3b, lm4.3c, lm4.3d)
+```
+
+### Cohort 2 non-reservation
+
+```{r}
+compare_performance(lm1.4, lm2.4, lm3.4, lm4.4a, lm4.4b, lm4.4c, lm4.4d)
+```
+
+
+
