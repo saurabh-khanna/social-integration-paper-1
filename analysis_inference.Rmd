@@ -21,6 +21,8 @@ library(sandwich)
 library(lmtest)
 library(estimatr)
 library(sensemakr)
+library(extrafont)
+extrafont::loadfonts()
 
 # Parameters
 data_file <- here::here("data/stu_admin_all_with_netvars.Rds")
@@ -124,7 +126,7 @@ df <-
 
 ## Appendix figure
 
-```{r}
+```{r, fig.retina=4}
 df %>% 
   group_by(department_id) %>% 
   summarize(stu_res_actual = mean(reservation, na.rm = TRUE)) %>% 
@@ -136,10 +138,12 @@ df %>%
     labels = scales::percent_format(accuracy = 1)
   ) +
   scale_y_continuous(breaks = seq(0, 10, 1)) +
+  hrbrthemes::theme_ipsum() +
   labs(
     x = "Proportion of reservation students in department",
     y = "Number of departments"
   )
+ggsave("figure.png")
 
 df %>% 
   select(stdid, reservation, contains("seg_new")) %>%
@@ -203,6 +207,7 @@ df %>%
   geom_density(alpha = 0.5) +
   geom_vline(data = df2, aes(xintercept = median, color = factor(reservation)), linetype = "dashed", size = 1, show.legend = F) +
   facet_wrap(vars(year), ncol=1) +
+  hrbrthemes::theme_ipsum() +
   theme(legend.position = "bottom") +
   labs(
     x = "Segregation (SD units)",
@@ -210,7 +215,7 @@ df %>%
     fill = "Student Reservation Status"
   )
 
-ggsave("report/figure.png")
+ggsave("figure.png")
 ```
 
 
@@ -309,7 +314,7 @@ read_dta(here::here("data", "old_seg_scores.dta")) %>%
 
 
 ### Levels
-```{r, message = F, warning = F, fig.retina=2}
+```{r, message = F, warning = F, fig.retina=4}
 # by res
 df %>% 
   select(starts_with("z_seg_g"), reservation) %>%
@@ -332,7 +337,8 @@ df %>%
     ) %>% 
   ggplot(aes(year, seg, group = reservation, fill = factor(reservation))) +
   geom_col(position = "dodge", color = "black") +
-  theme(legend.position = "bottom") +
+  theme_bw() +
+  #theme(legend.position = "bottom") +
   labs(
     x = "Year of college",
     y = "Segregation (SD units)",

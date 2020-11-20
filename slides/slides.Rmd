@@ -77,7 +77,7 @@ class: inverse, center, middle
 
 ```{r table1, echo=FALSE, message=FALSE, warnings=FALSE}
 library(tidyverse)
-tribble(
+dplyr::tribble(
     ~"", ~"Friend (f)", ~"Not friend (f')",   
     "Reservation (r)",    "A",     "C",
     "Non-reservation (nr)",    "B",     "D"

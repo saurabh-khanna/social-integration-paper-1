@@ -20,6 +20,8 @@ library(AER)
 library(sandwich)
 library(lmtest)
 library(estimatr)
+pacman::p_load(tidyverse, haven, AER, stargazer, sandwich, lmtest, estimatr, extrafont)
+extrafont::loadfonts()
 
 # Parameters
 stufac_file <- here::here("data", "all_appended.dta")
@@ -52,7 +54,7 @@ df <-
 
 
 ## Assigning sections
- 
+
 ```{r, message=F}
 sections <-
   df %>%
@@ -120,8 +122,30 @@ seg_scores <-
 ```{r}
 # extracting data frame for stata comparisons
 # seg_scores %>% write_dta("data/seg_scores.dta", version = 13)
+
 ```
 
+
+```{r, eval = F}
+# distribution plots of stu and fac diversity
+seg_scores %>%
+  pivot_longer(cols = contains("diversity"), names_to = "diversity_type", values_to = "diversity_value") %>% 
+  relocate(stdid, contains("diversity")) %>% 
+  mutate(
+    diversity_type = dplyr::recode(diversity_type, "fac_diversity" = "Faculty Diversity", "stu_diversity" = "Student Diversity"),
+    reservation = dplyr::recode(reservation, "1" = "Reservation", "0" = "Non-reservation")
+  ) %>% 
+  ggplot(aes(diversity_value)) +
+  geom_density(fill = "gray", alpha = 0.5) +
+  facet_wrap(vars(diversity_type, reservation)) +
+  hrbrthemes::theme_ipsum() +
+  labs(
+    x = "Diversity",
+    y = "",
+    caption = "All values reported in standard deviation units."
+  )
+#ggsave("figure.png")
+```
 
 ## Randomization checks
 
@@ -150,24 +174,24 @@ tidy(lm2) %>% select(term, estimate, p.value) %>% mutate_at(vars(estimate, p.val
 lm1 <-
   seg_scores %>%
   filter(reservation == 1) %>% 
-  lm_robust(e_seg_new ~ stu_diversity + female + age + score + b_seg_new + ses + hs_private + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+  lm_robust(e_seg_new ~ stu_diversity + female + age + score + b_seg_new + ses + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
 lm2 <-
   seg_scores %>%
   filter(reservation == 0) %>% 
-  lm_robust(e_seg_new ~ stu_diversity + female + age + score + b_seg_new + ses + hs_private + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+  lm_robust(e_seg_new ~ stu_diversity + female + age + score + b_seg_new + ses + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
 lm3 <-
   seg_scores %>%
   filter(reservation == 1) %>% 
-  lm_robust(e_seg_new ~ fac_diversity + female + age + score + b_seg_new + ses + hs_private + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+  lm_robust(e_seg_new ~ fac_diversity + female + age + score + b_seg_new + ses + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
 lm4 <-
   seg_scores %>%
   filter(reservation == 0) %>% 
-  lm_robust(e_seg_new ~ fac_diversity + female + age + score + b_seg_new + ses + hs_private + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
+  lm_robust(e_seg_new ~ fac_diversity + female + age + score + b_seg_new + ses + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
-texreg::screenreg(list(lm1, lm2, lm3, lm4), custom.note = "%stars \n All models control for department-year fixed effects.", omit.coef = "(female)|(score)|(college)|(school)|(ses)|(seg)|(age)|(hs)", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, custom.model.names = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"))
+texreg::texreg(list(lm1, lm2, lm3, lm4), custom.note = "%stars \n All models control for department-year fixed effects.", omit.coef = "(female)|(score)|(college)|(school)|(ses)|(seg)|(age)|(hs)", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, custom.model.names = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"))
 ```
 
 ```{r}
