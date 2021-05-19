@@ -1,0 +1,113 @@
+---
+title: "Centralities for SN Paper 1 - Descriptives"
+author: "Saurabh Khanna"
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+library(igraph)
+library(ggraph)
+library(tidygraph)
+library(haven)
+library(stargazer)
+library(intergraph)
+
+# Parameters
+baseline_network_file <- here::here("data/baseline_network.dta")
+endline_network_file <- here::here("data/endline_network.dta")
+```
+
+
+Reading in network data:
+
+```{r}
+b_nodes <- 
+  read_stata(baseline_network_file) %>% 
+  select(-b_node2) %>% 
+  distinct()
+
+b_edges <- 
+  read_stata(baseline_network_file) %>% 
+  select(b_node1, b_node2) %>%
+  filter(b_node2 != "")
+
+e_nodes <- 
+  read_stata(endline_network_file) %>% 
+  select(-e_node2) %>% 
+  distinct()
+
+e_edges <- 
+  read_stata(endline_network_file) %>% 
+  select(e_node1, e_node2) %>%
+  filter(e_node2 != "")
+
+b_network <- 
+  graph_from_data_frame(b_edges, b_nodes, directed = TRUE) %>% 
+  as_tbl_graph()
+
+e_network <- 
+  graph_from_data_frame(e_edges, e_nodes, directed = TRUE) %>% 
+  as_tbl_graph()
+```
+
+
+```{r}
+b_final <- tibble()
+
+classids <- read_dta(baseline_network_file) %>% select(classid) %>% arrange(classid) %>% distinct() %>% unlist()
+
+for (class in classids) {
+  b_final <-
+    bind_rows(
+      b_final,
+      b_network %>% 
+        filter(classid == class) %>% 
+        mutate(b_eig_cent = centrality_eigen()) %>% 
+        select(stdid = name, b_eig_cent) %>% 
+        as_tibble()
+    )
+}
+
+b_final %>% arrange(stdid)
+```
+
+
+
+
+```{r}
+e_final <- tibble()
+
+classids <- read_dta(endline_network_file) %>% select(classid) %>% arrange(classid) %>% distinct() %>% unlist()
+
+for (class in classids) {
+  e_final <-
+    bind_rows(
+      e_final,
+      e_network %>% 
+        filter(classid == class) %>% 
+        mutate(e_eig_cent = centrality_eigen()) %>% 
+        select(stdid = name, e_eig_cent) %>% 
+        as_tibble()
+    )
+}
+
+e_final %>% arrange(stdid)
+```
+
+```{r}
+# writing out joined file
+full_join(b_final, e_final, by = "stdid") %>% 
+  arrange(stdid) %>% 
+  write_dta(here::here("data/centralities.dta"), version = 13)
+```
+
+
