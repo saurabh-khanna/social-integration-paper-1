@@ -13,14 +13,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.retina = 4)
 
 ```{r message=FALSE, warning=FALSE}
 # Libraries
-library(tidyverse)
-library(haven)
-library(stargazer)
-library(AER)
-library(sandwich)
-library(lmtest)
-library(estimatr)
-pacman::p_load(tidyverse, haven, AER, stargazer, sandwich, lmtest, estimatr, extrafont)
+pacman::p_load(tidyverse, haven, AER, stargazer, sandwich, lmtest, estimatr, extrafont, texreg)
 extrafont::loadfonts()
 
 # Parameters
@@ -47,9 +40,11 @@ df <-
       select(stdid, classid, reservation, ea_stud_group_criteria, grade),
     by = "stdid"
   ) %>% 
-  left_join(read_dta(here::here("/data/res_fac_all.dta")), by = "facid") %>% 
+  left_join(read_dta(here::here("data/res_fac_all.dta")), by = "facid") %>% 
   filter(ea_stud_group_criteria == 2, grade == 2) %>% 
   drop_na(reservation)
+
+df %>% filter(ea_stud_group_criteria == 2, grade == 2) %>% distinct(stdid)
 ```
 
 
@@ -116,6 +111,8 @@ seg_scores <-
     vars("e_seg_new", "b_seg_new", "stu_diversity", "fac_diversity"),
     ~ scale(.) %>% as.vector
   )
+
+seg_scores
 ```
 
 
@@ -161,7 +158,6 @@ lm2 <-
 
 #texreg::screenreg(list(lm1, lm2), custom.note = "%stars \n All models control for department-year fixed effects.", stars = c(0.01, 0.05, 0.1), include.ci = FALSE)
 
-summary(lm1)
 tidy(lm1) %>% select(term, estimate, p.value) %>% mutate_at(vars(estimate, p.value), ~ round(., digits = 2))
 tidy(lm2) %>% select(term, estimate, p.value) %>% mutate_at(vars(estimate, p.value), ~ round(., digits = 2))
 ```
@@ -191,7 +187,7 @@ lm4 <-
   filter(reservation == 0) %>% 
   lm_robust(e_seg_new ~ fac_diversity + female + age + score + b_seg_new + ses + father_college, data = ., fixed_effects = ~ classid, clusters = classid, se_type = "stata")
 
-texreg::texreg(list(lm1, lm2, lm3, lm4), custom.note = "%stars \n All models control for department-year fixed effects.", omit.coef = "(female)|(score)|(college)|(school)|(ses)|(seg)|(age)|(hs)", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, custom.model.names = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"))
+screenreg(list(lm1, lm2, lm3, lm4), custom.note = "%stars \n All models control for department-year fixed effects.", omit.coef = "(female)|(score)|(college)|(school)|(ses)|(seg)|(age)|(hs)", stars = c(0.01, 0.05, 0.1), include.ci = FALSE, custom.model.names = c("Reservation", "Non-reservation", "Reservation", "Non-reservation"))
 ```
 
 ```{r}
